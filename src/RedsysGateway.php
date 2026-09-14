@@ -27,7 +27,9 @@ class RedsysGateway
     private function client(): RedsysClient
     {
         return new RedsysClient(
-            merchantCode: $this->merchantCode,
+            // creagia los quiere numericos y aqui hay strict_types: sin el cast
+            // es un TypeError en el primer cobro, no un fallo de Redsys.
+            merchantCode: (int) $this->merchantCode,
             secretKey:    $this->secretKey,
             terminal:     $this->terminal,
             environment:  $this->production ? Environment::Production : Environment::Test,
