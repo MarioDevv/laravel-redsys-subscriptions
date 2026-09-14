@@ -74,6 +74,49 @@ final class SubscriptionStateTest extends TestCase
         $this->assertSame(Subscription::CANCELED, $s->status, 'al tercer fallo se corta');
     }
 
+    public function test_cancelling_keeps_the_access_already_paid_for(): void
+    {
+        $s = $this->subscription(['next_charge_at' => now()->addDays(12)]);
+
+        $s->cancel();
+
+        $this->assertSame(Subscription::CANCELED, $s->status);
+        $this->assertTrue($s->onGracePeriod());
+        $this->assertTrue($s->valid(), 'pago el mes entero: el acceso le dura lo pagado');
+        $this->assertTrue($s->ends_at->isSameDay(now()->addDays(12)));
+        $this->assertCount(0, Subscription::query()->due()->get(), 'y no se le vuelve a cobrar');
+    }
+
+    public function test_cancelling_now_cuts_the_access_immediately(): void
+    {
+        $s = $this->subscription(['next_charge_at' => now()->addDays(12)]);
+
+        $s->cancelNow();
+
+        $this->assertFalse($s->onGracePeriod());
+        $this->assertFalse($s->valid());
+    }
+
+    public function test_billable_still_counts_a_cancelled_subscription_in_its_grace_period(): void
+    {
+        $user = new class extends \Illuminate\Database\Eloquent\Model {
+            use \MarioDevv\RedsysSubscriptions\Billable;
+
+            protected $table = 'users';
+        };
+        $user->id = 7;
+        $user->exists = true;
+
+        $s = $this->subscription([
+            'billable_type'  => $user::class,
+            'billable_id'    => 7,
+            'next_charge_at' => now()->addWeek(),
+        ]);
+        $s->cancel();
+
+        $this->assertTrue($user->subscribed(), 'cortarle el acceso el dia de la baja es quedarse su dinero');
+    }
+
     public function test_due_scope_ignores_sca_and_cancelled(): void
     {
         $this->subscription(['status' => Subscription::ACTIVE]);

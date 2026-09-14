@@ -92,6 +92,37 @@ class Subscription extends Model
         $this->recordCharge(ChargeOutcome::Authorized);
     }
 
+    /**
+     * Baja al final del periodo ya pagado. Deja de cobrarse desde ya, pero el
+     * titular conserva el acceso hasta la fecha que le quedaba: le cobraste el
+     * mes entero y cortarle el dia que se da de baja es quedarse su dinero.
+     */
+    public function cancel(): void
+    {
+        $this->update([
+            'status'  => self::CANCELED,
+            'ends_at' => $this->next_charge_at ?? now(),
+        ]);
+    }
+
+    /** Baja inmediata, sin el resto del periodo. */
+    public function cancelNow(): void
+    {
+        $this->update(['status' => self::CANCELED, 'ends_at' => now()]);
+    }
+
+    /** Cancelada, pero todavia dentro de lo que ya pago. */
+    public function onGracePeriod(): bool
+    {
+        return $this->status === self::CANCELED && (bool) $this->ends_at?->isFuture();
+    }
+
+    /** Si da derecho al servicio. Es lo que hay que mirar para dar acceso. */
+    public function valid(): bool
+    {
+        return $this->active() || $this->onGracePeriod();
+    }
+
     /** Pedido nuevo. Redsys los quiere de 12 caracteres como mucho, los 4
      *  primeros numericos, y rechaza los repetidos con SIS0051. */
     public function newOrder(): string

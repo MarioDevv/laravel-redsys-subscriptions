@@ -18,9 +18,10 @@ trait Billable
         return $this->redsysSubscriptions()->where('name', $name)->latest('id')->first();
     }
 
+    /** Incluye a quien se dio de baja pero aun tiene periodo pagado. */
     public function subscribed(string $name = 'default'): bool
     {
-        return (bool) $this->subscription($name)?->active();
+        return (bool) $this->subscription($name)?->valid();
     }
 
     /**
