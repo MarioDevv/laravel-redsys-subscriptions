@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys\Tests;
+namespace MarioDevv\RedsysSubscriptions\Tests;
 
-use MarioDevv\CashierRedsys\ChargeOutcome;
+use MarioDevv\RedsysSubscriptions\ChargeOutcome;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

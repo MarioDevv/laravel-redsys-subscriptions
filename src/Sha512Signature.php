@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys;
+namespace MarioDevv\RedsysSubscriptions;
 
 /**
  * Firma HMAC_SHA512_V2 de Redsys.

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys\Tests;
+namespace MarioDevv\RedsysSubscriptions\Tests;
 
 use Illuminate\Database\Eloquent\Model;
-use MarioDevv\CashierRedsys\CashierRedsysServiceProvider;
+use MarioDevv\RedsysSubscriptions\RedsysSubscriptionsServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
@@ -18,7 +18,7 @@ abstract class TestCase extends Orchestra
 
     protected function getPackageProviders($app): array
     {
-        return [CashierRedsysServiceProvider::class];
+        return [RedsysSubscriptionsServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void

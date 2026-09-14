@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys;
+namespace MarioDevv\RedsysSubscriptions;
 
 use Creagia\Redsys\Enums\{CofType, Currency, Environment, ExcepSca, TransactionType};
 use Creagia\Redsys\RedsysClient;

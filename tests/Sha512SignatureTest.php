@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys\Tests;
+namespace MarioDevv\RedsysSubscriptions\Tests;
 
-use MarioDevv\CashierRedsys\Sha512Signature;
+use MarioDevv\RedsysSubscriptions\Sha512Signature;
 use PHPUnit\Framework\TestCase;
 
 final class Sha512SignatureTest extends TestCase

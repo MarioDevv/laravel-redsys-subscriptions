@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys\Tests;
+namespace MarioDevv\RedsysSubscriptions\Tests;
 
-use MarioDevv\CashierRedsys\ChargeOutcome;
-use MarioDevv\CashierRedsys\Subscription;
+use MarioDevv\RedsysSubscriptions\ChargeOutcome;
+use MarioDevv\RedsysSubscriptions\Subscription;
 
 /**
  * La maquina de estados es el producto. Las transiciones salen de lo observado

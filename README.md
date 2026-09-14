@@ -1,4 +1,4 @@
-# Laravel Cashier Redsys
+# Laravel Redsys Subscriptions
 
 Suscripciones y cobros recurrentes con **Redsys** para Laravel.
 
@@ -12,7 +12,7 @@ pendientes— lo pone este paquete.
 ## Instalación
 
 ```bash
-composer require mariodevv/laravel-cashier-redsys
+composer require mariodevv/laravel-redsys-subscriptions
 php artisan migrate
 ```
 
@@ -26,7 +26,7 @@ REDSYS_PRODUCTION=false
 ## Uso
 
 ```php
-use MarioDevv\CashierRedsys\Billable;
+use MarioDevv\RedsysSubscriptions\Billable;
 
 class User extends Authenticatable
 {
@@ -80,7 +80,7 @@ Dos detalles que cuestan caro si se ignoran:
 Soporta `HMAC_SHA512_V2`, la versión de firma que Redsys presenta hoy como actual:
 
 ```php
-use MarioDevv\CashierRedsys\Sha512Signature;
+use MarioDevv\RedsysSubscriptions\Sha512Signature;
 
 $signature = Sha512Signature::sign($merchantParameters, $order, $secretKey);
 $valid     = Sha512Signature::verify($received, $merchantParameters, $order, $secretKey);

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys;
+namespace MarioDevv\RedsysSubscriptions;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;

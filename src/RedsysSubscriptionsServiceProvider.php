@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys;
+namespace MarioDevv\RedsysSubscriptions;
 
 use Illuminate\Support\ServiceProvider;
 
-class CashierRedsysServiceProvider extends ServiceProvider
+class RedsysSubscriptionsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {

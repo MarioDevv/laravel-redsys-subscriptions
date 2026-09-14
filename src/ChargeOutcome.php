@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MarioDevv\CashierRedsys;
+namespace MarioDevv\RedsysSubscriptions;
 
 /**
  * Resultado de un cobro MIT, traducido desde lo que responde Redsys.
