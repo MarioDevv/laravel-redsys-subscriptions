@@ -4,3 +4,6 @@
 .phpunit.result.cache
 /.playwright-mcp/
 composer.lock
+.env*
+/workbench/database/*.sqlite
+/workbench/storage/

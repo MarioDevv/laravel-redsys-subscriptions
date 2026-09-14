@@ -9,7 +9,12 @@ use PHPUnit\Framework\TestCase;
 
 final class Sha512SignatureTest extends TestCase
 {
-    /** Vector de prueba oficial de Redsys. */
+    /**
+     * Vector de prueba oficial de Redsys: clave, pedido y parametros publicados
+     * en su documentacion, con la firma que ellos dan por buena. La clave es la
+     * del entorno de pruebas, no un secreto; cambiarla por otra convierte este
+     * test en una comprobacion de que el codigo coincide consigo mismo.
+     */
     private const KEY    = 'sq7HjrUOBfKmC576ILgskD5srU870gJ7';
     private const ORDER  = '1234567890';
     private const PARAMS = 'eyJEU19NRVJDSEFOVF9BTU9VTlQiOiI5OTkiLCJEU19NRVJDSEFOVF9PUkRFUiI6IjEyMzQ1Njc4OTAiLCJEU19NRVJDSEFOVF9NRVJDSEFOVENPREUiOiI5OTkwMDg4ODEiLCJEU19NRVJDSEFOVF9DVVJSRU5DWSI6Ijk3OCIsIkRTX01FUkNIQU5UX1RSQU5TQUNUSU9OVFlQRSI6IjAiLCJEU19NRVJDSEFOVF9URVJNSU5BTCI6IjEiLCJEU19NRVJDSEFOVF9NRVJDSEFOVFVSTCI6Imh0dHA6XC9cL3d3dy5wcnVlYmEuY29tXC91cmxOb3RpZmljYWNpb24ucGhwIiwiRFNfTUVSQ0hBTlRfVVJMT0siOiJodHRwOlwvXC93d3cucHJ1ZWJhLmNvbVwvdXJsT0sucGhwIiwiRFNfTUVSQ0hBTlRfVVJMS08iOiJodHRwOlwvXC93d3cucHJ1ZWJhLmNvbVwvdXJsS08ucGhwIn0';
