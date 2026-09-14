@@ -38,6 +38,28 @@ class Subscription extends Model
         return $this->morphTo();
     }
 
+    /**
+     * Como se llaman los estados de cara a quien mira el panel. El valor que se
+     * guarda no cambia: esto es solo la etiqueta.
+     *
+     * @return array<string, string>
+     */
+    public static function statusLabels(): array
+    {
+        return [
+            self::ACTIVE       => 'Activa',
+            self::PAST_DUE     => 'Reintentando',
+            self::PAST_DUE_SCA => 'Pendiente del titular',
+            self::CANCELED     => 'Cancelada',
+            self::INCOMPLETE   => 'Sin terminar',
+        ];
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statusLabels()[$this->status] ?? $this->status;
+    }
+
     public function active(): bool
     {
         return $this->status === self::ACTIVE;
@@ -121,6 +143,51 @@ class Subscription extends Model
     public function valid(): bool
     {
         return $this->active() || $this->onGracePeriod();
+    }
+
+    /**
+     * Fecha para leer de un vistazo: «mañana» dice mas que «15/10/2026» cuando
+     * lo que buscas es un cobro que se te ha pasado. La fecha exacta va en el
+     * title del elemento, que es donde se mira cuando importa.
+     */
+    public static function humanDate(?\DateTimeInterface $date): string
+    {
+        if ($date === null) {
+            return '—';
+        }
+
+        $days = (int) now()->startOfDay()->diffInDays(
+            \Illuminate\Support\Carbon::instance($date)->startOfDay(),
+            false,
+        );
+
+        return match (true) {
+            $days === 0  => 'hoy',
+            $days === 1  => 'mañana',
+            $days === -1 => 'ayer',
+            $days > 1 && $days <= 30   => "en {$days} días",
+            $days < -1 && $days >= -30 => 'hace ' . abs($days) . ' días',
+            default => $date->format('j/n/Y'),
+        };
+    }
+
+    /**
+     * Como llamar al titular en el panel, sea cual sea el modelo.
+     *
+     * Tolera que la clase ya no exista: un modelo renombrado deja filas
+     * apuntando a la nada, y eso no puede tumbar el panel entero.
+     */
+    public function billableName(): string
+    {
+        $fallback = class_basename($this->billable_type) . ' #' . $this->billable_id;
+
+        if (! class_exists($this->billable_type)) {
+            return $fallback;
+        }
+
+        $billable = $this->billable;
+
+        return $billable?->name ?? $billable?->email ?? $fallback;
     }
 
     /** Pedido nuevo. Redsys los quiere de 12 caracteres como mucho, los 4

@@ -12,4 +12,13 @@ return [
     // A donde vuelve el titular despues de pasar por Redsys.
     'return_url'    => env('REDSYS_RETURN_URL', '/'),
 
+    'panel' => [
+        'path'       => env('REDSYS_PANEL_PATH', 'redsys-subscriptions'),
+
+        // El panel necesita sesion para que el Gate sepa quien entra. Ademas de
+        // esto siempre se aplica MarioDevv\RedsysSubscriptions\Authorize, que
+        // niega el paso fuera de local mientras no definas el Gate
+        // 'viewRedsysSubscriptions'.
+        'middleware' => ['web'],
+    ],
 ];
