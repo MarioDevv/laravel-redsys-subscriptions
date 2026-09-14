@@ -28,11 +28,8 @@ class ChargeDueSubscriptions extends Command
                 continue;
             }
 
-            // Redsys rechaza un numero de pedido repetido (SIS0051), asi que
-            // cada intento necesita el suyo, tambien los reintentos.
-            $order = substr((string) time(), -8) . str_pad((string) ($subscription->id % 100), 2, '0', STR_PAD_LEFT);
-
-            $outcome = $gateway->chargeStoredCard($subscription, $order);
+            // Cada intento necesita su propio pedido, reintentos incluidos.
+            $outcome = $gateway->chargeStoredCard($subscription, $subscription->newOrder());
             $subscription->recordCharge($outcome);
 
             $this->line("#{$subscription->id} · {$outcome->value} → {$subscription->status}");

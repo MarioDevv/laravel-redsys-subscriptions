@@ -13,6 +13,11 @@ return new class extends Migration
             $table->morphs('billable');
             $table->string('name')->default('default');
 
+            // Pedido del alta de tarjeta. Con 'Enviar parametros en las URLs' en
+            // NO, la notificacion servidor-a-servidor es lo unico que identifica
+            // la suscripcion, y solo trae Ds_Order.
+            $table->string('checkout_order', 12)->nullable()->unique();
+
             // Referencia de tarjeta devuelta por Redsys en el pago inicial (COF)
             $table->string('card_token')->nullable();
             $table->string('cof_transaction_id')->nullable();

@@ -44,6 +44,62 @@ class Subscription extends Model
     }
 
     /**
+     * Formulario del alta de tarjeta. El pedido se guarda aqui porque es el
+     * unico hilo que une esta suscripcion con lo que Redsys devuelva despues:
+     * si lo genera quien llama, la notificacion no sabe a quien activar.
+     */
+    public function cardRegistrationForm(): string
+    {
+        $this->update(['checkout_order' => $order = $this->newOrder()]);
+
+        return app(RedsysGateway::class)->cardRegistrationForm(
+            amountInCents: $this->amount_in_cents,
+            order:         $order,
+            urlOk:         route('redsys.subscriptions.return', $this),
+            urlKo:         route('redsys.subscriptions.return', [$this, 'ko' => 1]),
+            notifyUrl:     route('redsys.subscriptions.notify'),
+        );
+    }
+
+    /**
+     * Alta confirmada por Redsys. Los parametros llegan ya verificados: quien
+     * llama a esto ha comprobado la firma antes.
+     *
+     * @param array<string, mixed> $params Ds_* en MAYUSCULAS.
+     */
+    public function completeCheckout(array $params): void
+    {
+        // Un alta denegada no cancela nada: sigue incomplete y el titular puede
+        // reintentar. Sin referencia de tarjeta tampoco se activa, o quedaria
+        // activa sin poder cobrar e invisible para el scope due(). Y si ya esta
+        // activa, no se toca: la notificacion y la vuelta del navegador pueden
+        // llegar las dos, y la segunda no debe mover la fecha de cobro.
+        if (
+            ChargeOutcome::fromRedsys($params['DS_RESPONSE'] ?? null) !== ChargeOutcome::Authorized
+            || empty($params['DS_MERCHANT_IDENTIFIER'])
+            || $this->active()
+        ) {
+            return;
+        }
+
+        $this->fill([
+            'card_token'         => $params['DS_MERCHANT_IDENTIFIER'],
+            'cof_transaction_id' => $params['DS_MERCHANT_COF_TXNID'] ?? null,
+            'card_last_four'     => substr((string) ($params['DS_CARD_NUMBER'] ?? ''), -4) ?: null,
+            'card_expiry'        => $params['DS_EXPIRYDATE'] ?? null,
+        ]);
+
+        $this->recordCharge(ChargeOutcome::Authorized);
+    }
+
+    /** Pedido nuevo. Redsys los quiere de 12 caracteres como mucho, los 4
+     *  primeros numericos, y rechaza los repetidos con SIS0051. */
+    public function newOrder(): string
+    {
+        return substr((string) time(), -8) . str_pad((string) ($this->id % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    /**
      * Aplica el resultado de un cobro. Aqui vive toda la logica de estados.
      */
     public function recordCharge(ChargeOutcome $outcome): void
