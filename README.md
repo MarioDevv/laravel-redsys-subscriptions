@@ -104,24 +104,37 @@ Schedule::command('redsys:charge-subscriptions')->dailyAt('03:00');
 
 ## Ver el paquete funcionando
 
-El repositorio trae una demo en `workbench/`, que **no forma parte del paquete**:
-solo la ve quien lo clona.
+El repositorio trae un laboratorio en `docker/`, que **no forma parte del
+paquete**: solo lo ve quien lo clona. Es una aplicación Laravel de verdad, no un
+banco de pruebas, así que lo que falle aquí falla igual en la tuya.
 
 ```bash
-composer install
-vendor/bin/testbench workbench:build
-
 REDSYS_MERCHANT_CODE=... REDSYS_TERMINAL=... REDSYS_SECRET_KEY=... \
-  vendor/bin/testbench serve
+  docker compose up
 ```
+
+La primera vez crea la aplicación y engancha el paquete con un repositorio de
+tipo `path`, así que **lo que edites en el repositorio se ve al recargar**, sin
+reinstalar nada. Tarda un par de minutos; las siguientes arranca en segundos.
 
 En `http://127.0.0.1:8000` puedes dar de alta una tarjeta contra el entorno de
 pruebas de Redsys, ver la suscripción pasar de `incomplete` a `active` con los
 últimos cuatro dígitos, adelantar el vencimiento y lanzar
-`redsys:charge-subscriptions` para ver la máquina de estados moverse.
+`redsys:charge-subscriptions` para ver la máquina de estados moverse. El panel
+está en `/redsys-subscriptions`.
 
 Sin credenciales arranca igual, pero avisa: el paquete no trae ninguna por
 defecto.
+
+```bash
+docker compose down -v   # tirar la aplicación y empezar de cero
+```
+
+Los tests también corren ahí, que es lo cómodo si tu PHP no trae `pdo_sqlite`:
+
+```bash
+docker compose exec lab sh -c 'cd /package && vendor/bin/phpunit'
+```
 
 > El alta se completa entera en `localhost` **si tu comercio tiene «Enviar
 > parámetros en las URLs» en SÍ**. Con la casilla en NO hace falta exponer la
@@ -226,16 +239,22 @@ El 3DS real y la notificación servidor-a-servidor todavía no han tocado Redsys
 ### Antes de la 1.0
 
 1. **Historial de cobros.** No se guarda cada intento, así que el panel no puede
-   enseñar qué pasó ni cuándo.
+   enseñar qué pasó ni cuándo. Falta una tabla de intentos y escribirla desde
+   `recordCharge()`.
 2. **Actualizar la tarjeta.** Tras un `SIS0321` o un `0195` no hay forma de poner
    una tarjeta nueva sobre la misma suscripción.
-3. **Eventos.** La aplicación no puede enterarse de que un cobro ha fallado para
+3. **Ficha de suscripción.** El panel llega hasta el listado. No hay pantalla de
+   una sola suscripción, que es donde caben el historial y el cambio de tarjeta.
+4. **El motivo exacto de un fallo.** Solo se guarda el contador `failures`, no el
+   último código de Redsys. El panel puede decir «intento 2 de 3», pero no
+   «0180 · fondos insuficientes». Sale gratis con el punto 1.
+5. **Eventos.** La aplicación no puede enterarse de que un cobro ha fallado para
    avisar al cliente.
-4. **Un cobro a la vez.** El comando no coge lock: dos pases solapados cobran dos
+6. **Un cobro a la vez.** El comando no coge lock: dos pases solapados cobran dos
    veces al mismo cliente.
-5. **Espera entre reintentos.** Un fallo no mueve `next_charge_at`, así que cada
+7. **Espera entre reintentos.** Un fallo no mueve `next_charge_at`, así que cada
    pase reintenta. Con cron horario, tres intentos se gastan en tres horas.
-6. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
+8. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
    13 trae la 8, así que `composer require` falla si no se fuerza con `-W`.
 
 ### Puede que nunca
