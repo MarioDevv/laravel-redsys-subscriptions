@@ -128,4 +128,37 @@ final class SubscriptionStateTest extends TestCase
 
         $this->assertCount(2, Subscription::query()->due()->get());
     }
+
+    public function test_a_decline_waits_days_before_trying_again(): void
+    {
+        $s = $this->subscription(['next_charge_at' => now()->subDay()]);
+
+        $s->recordCharge(ChargeOutcome::Declined);
+
+        // Sin esto la suscripcion sigue vencida y el siguiente pase del cron
+        // la vuelve a cobrar: tres intentos contra el mismo saldo vacio.
+        $this->assertTrue($s->next_charge_at->isFuture());
+        $this->assertTrue($s->next_charge_at->isSameDay(now()->addDays(Subscription::RETRY_DAYS)));
+    }
+
+    public function test_a_subscription_waiting_for_its_retry_is_not_due(): void
+    {
+        $s = $this->subscription(['next_charge_at' => now()->subDay()]);
+
+        $this->assertSame(1, Subscription::query()->due()->count());
+
+        $s->recordCharge(ChargeOutcome::Declined);
+
+        $this->assertSame(0, Subscription::query()->due()->count());
+    }
+
+    public function test_the_retry_comes_back_when_the_wait_is_over(): void
+    {
+        $s = $this->subscription(['next_charge_at' => now()->subDay()]);
+        $s->recordCharge(ChargeOutcome::Declined);
+
+        $this->travel(Subscription::RETRY_DAYS + 1)->days();
+
+        $this->assertSame(1, Subscription::query()->due()->count());
+    }
 }

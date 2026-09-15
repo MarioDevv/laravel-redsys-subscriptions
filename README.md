@@ -221,7 +221,7 @@ Las transiciones no son de manual: salen de observar qué responde Redsys.
 | `0000`–`0099` | `active` | Activa | Nada. Se reinicia el contador de fallos. |
 | `0195` | `past_due_sca` | Pendiente del titular | Enviar al titular a reautenticar. **No reintentar. No cancelar.** |
 | `SIS0321` | `canceled` | Cancelada | La referencia ya no vale. Pedir tarjeta nueva. |
-| Otra denegación | `past_due` | Reintentando | Reintentar, hasta 3 veces. |
+| Otra denegación | `past_due` | Reintentando | Reintentar, hasta 3 veces, cada 3 días. |
 
 El valor guardado es el de la columna «Estado»; lo traducido es solo la etiqueta,
 y sale de `Subscription::statusLabels()`.
@@ -233,6 +233,9 @@ Dos detalles que cuestan caro si se ignoran:
   Cancelar aquí es tirar clientes que pagan.
 - **Cada intento necesita su propio número de pedido.** Redsys rechaza los
   repetidos con `SIS0051`, reintentos incluidos.
+- **Un fallo espera `Subscription::RETRY_DAYS` antes del siguiente intento.**
+  Reintentar el mismo día es gastar los tres contra el mismo saldo vacío; tres
+  días dan margen a que entre una nómina.
 
 ## Firma SHA-512
 
@@ -268,11 +271,7 @@ El 3DS real y la notificación servidor-a-servidor todavía no han tocado Redsys
    una tarjeta nueva sobre la misma suscripción.
 2. **Eventos.** La aplicación no puede enterarse de que un cobro ha fallado para
    avisar al cliente.
-3. **Un cobro a la vez.** El comando no coge lock: dos pases solapados cobran dos
-   veces al mismo cliente.
-4. **Espera entre reintentos.** Un fallo no mueve `next_charge_at`, así que cada
-   pase reintenta. Con cron horario, tres intentos se gastan en tres horas.
-5. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
+3. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
    13 trae la 8, así que `composer require` falla si no se fuerza con `-W`.
 
 ### Puede que nunca

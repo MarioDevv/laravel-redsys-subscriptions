@@ -23,6 +23,13 @@ class Subscription extends Model
     /** Reintentos antes de darla por perdida. */
     public const MAX_FAILURES = 3;
 
+    /**
+     * Dias entre reintentos. Con tres intentos da una ventana de nueve dias,
+     * que es lo que hace falta para que entre una nomina. Reintentar el mismo
+     * dia es gastar los tres intentos contra el mismo saldo vacio.
+     */
+    public const RETRY_DAYS = 3;
+
     protected $table = 'redsys_subscriptions';
 
     protected $guarded = [];
@@ -247,10 +254,15 @@ class Subscription extends Model
                 'ends_at'    => now(),
             ]),
 
+            // Reintentar manana, no dentro de una hora. Sin mover la fecha la
+            // suscripcion sigue vencida y el siguiente pase la vuelve a cobrar:
+            // con cron horario los tres intentos se gastan en tres horas y el
+            // cliente se queda cancelado el mismo dia que le fallo la tarjeta.
             ChargeOutcome::Declined => $this->fill([
-                'status'   => ++$this->failures >= self::MAX_FAILURES ? self::CANCELED : self::PAST_DUE,
-                'failures' => $this->failures,
-                'ends_at'  => $this->failures >= self::MAX_FAILURES ? now() : null,
+                'status'         => ++$this->failures >= self::MAX_FAILURES ? self::CANCELED : self::PAST_DUE,
+                'failures'       => $this->failures,
+                'ends_at'        => $this->failures >= self::MAX_FAILURES ? now() : null,
+                'next_charge_at' => now()->addDays(self::RETRY_DAYS),
             ]),
         };
 
