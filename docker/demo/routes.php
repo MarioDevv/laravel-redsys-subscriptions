@@ -2,18 +2,24 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use MarioDevv\RedsysSubscriptions\Authorize;
 use MarioDevv\RedsysSubscriptions\ChargeOutcome;
 use MarioDevv\RedsysSubscriptions\Subscription;
-use Workbench\App\Models\User;
 
 /**
- * Demo del paquete. No forma parte de el: vive en workbench/ y solo la ve quien
- * clona el repositorio y arranca `vendor/bin/testbench serve`.
+ * Demo del paquete. No forma parte de él: vive en docker/demo/ y solo la ve
+ * quien clona el repositorio y levanta el laboratorio.
  */
+
+// El panel viene cerrado salvo que lo abra un Gate. Aquí se abre porque esto es
+// el taller; en una aplicación de verdad lo decide su dueño.
+Gate::define(Authorize::GATE, fn ($user = null) => true);
 
 $demoUser = fn (): User => User::firstOrCreate(
     ['email' => 'titular@example.test'],

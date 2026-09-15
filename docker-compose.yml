@@ -1,0 +1,22 @@
+services:
+  lab:
+    build: ./docker
+    ports:
+      - "8000:8000"
+    volumes:
+      # El paquete, enlazado por composer. Lo que cambies en el repositorio se
+      # ve en el laboratorio sin reinstalar.
+      - .:/package
+      - ./docker/demo:/demo:ro
+      # La aplicación Laravel generada. En un volumen para que sobreviva a los
+      # reinicios y no ensucie el repositorio.
+      - lab-app:/app
+    environment:
+      REDSYS_MERCHANT_CODE: "${REDSYS_MERCHANT_CODE:-}"
+      REDSYS_TERMINAL: "${REDSYS_TERMINAL:-1}"
+      REDSYS_SECRET_KEY: "${REDSYS_SECRET_KEY:-}"
+      REDSYS_PRODUCTION: "${REDSYS_PRODUCTION:-false}"
+      REDSYS_RETURN_URL: "${REDSYS_RETURN_URL:-/}"
+
+volumes:
+  lab-app:
