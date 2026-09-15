@@ -1,5 +1,10 @@
 # Laravel Redsys Subscriptions
 
+[![Packagist](https://img.shields.io/packagist/v/mariodevv/laravel-redsys-subscriptions.svg)](https://packagist.org/packages/mariodevv/laravel-redsys-subscriptions)
+[![Descargas](https://img.shields.io/packagist/dt/mariodevv/laravel-redsys-subscriptions.svg)](https://packagist.org/packages/mariodevv/laravel-redsys-subscriptions)
+[![PHP](https://img.shields.io/packagist/dependency-v/mariodevv/laravel-redsys-subscriptions/php.svg)](composer.json)
+[![Licencia](https://img.shields.io/packagist/l/mariodevv/laravel-redsys-subscriptions.svg)](LICENSE)
+
 Suscripciones y cobros recurrentes con **Redsys** para Laravel.
 
 Redsys no aloja suscripciones: solo guarda una referencia de tarjeta. El ciclo de
@@ -464,4 +469,4 @@ Este paquete solo añade la capa de suscripciones.
 
 ## Licencia
 
-MIT.
+MIT. Ver [LICENSE](LICENSE).
