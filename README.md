@@ -150,6 +150,8 @@ El paquete trae un panel para operar en producción, en `/redsys-subscriptions`:
   referencia, filtrable por estado. Desde aquí se **da de baja** y se **lanza un
   cobro en el momento**, que es lo que hace falta cuando un cliente llama
   diciendo que ya tiene saldo.
+- **Ficha de una suscripción** — la tarjeta guardada, el cobro y el **historial
+  de intentos**, cada uno con el código que devolvió Redsys.
 - **Ajustes** — qué comercio, terminal y entorno está usando el paquete, y a qué
   direcciones responde. La clave de firma no se imprime nunca.
 
@@ -170,6 +172,25 @@ porque alguien se olvidara de configurarlo. La ruta y el middleware se cambian e
 ```bash
 php artisan vendor:publish --tag=redsys-subscriptions-views
 ```
+
+## Historial de cobros
+
+Cada intento deja una fila, salga bien o mal. El estado dice cómo está la
+suscripción ahora; el historial dice cómo ha llegado hasta ahí, que es lo que
+hace falta cuando un cliente pregunta por un cargo.
+
+```php
+$subscription->charges;          // el más reciente primero
+
+$charge->order;                  // el pedido de ese intento
+$charge->outcome;                // ChargeOutcome
+$charge->response_code;          // '0180', 'SIS0321'…
+$charge->responseLabel();        // «0180 · Denegada»
+```
+
+El importe se congela en la fila: si mañana subes el precio, lo que se cobró
+aquel día no cambia. Y el alta de tarjeta es la primera línea del historial,
+porque también fue un cobro.
 
 ## Bajas
 
@@ -238,23 +259,15 @@ El 3DS real y la notificación servidor-a-servidor todavía no han tocado Redsys
 
 ### Antes de la 1.0
 
-1. **Historial de cobros.** No se guarda cada intento, así que el panel no puede
-   enseñar qué pasó ni cuándo. Falta una tabla de intentos y escribirla desde
-   `recordCharge()`.
-2. **Actualizar la tarjeta.** Tras un `SIS0321` o un `0195` no hay forma de poner
+1. **Actualizar la tarjeta.** Tras un `SIS0321` o un `0195` no hay forma de poner
    una tarjeta nueva sobre la misma suscripción.
-3. **Ficha de suscripción.** El panel llega hasta el listado. No hay pantalla de
-   una sola suscripción, que es donde caben el historial y el cambio de tarjeta.
-4. **El motivo exacto de un fallo.** Solo se guarda el contador `failures`, no el
-   último código de Redsys. El panel puede decir «intento 2 de 3», pero no
-   «0180 · fondos insuficientes». Sale gratis con el punto 1.
-5. **Eventos.** La aplicación no puede enterarse de que un cobro ha fallado para
+2. **Eventos.** La aplicación no puede enterarse de que un cobro ha fallado para
    avisar al cliente.
-6. **Un cobro a la vez.** El comando no coge lock: dos pases solapados cobran dos
+3. **Un cobro a la vez.** El comando no coge lock: dos pases solapados cobran dos
    veces al mismo cliente.
-7. **Espera entre reintentos.** Un fallo no mueve `next_charge_at`, así que cada
+4. **Espera entre reintentos.** Un fallo no mueve `next_charge_at`, así que cada
    pase reintenta. Con cron horario, tres intentos se gastan en tres horas.
-8. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
+5. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
    13 trae la 8, así que `composer require` falla si no se fuerza con `-W`.
 
 ### Puede que nunca
