@@ -119,4 +119,29 @@ final class ChargeCommandTest extends TestCase
 
         $this->assertSame(0, $gateway->calls);
     }
+
+    public function test_a_merchant_error_stops_the_whole_pass(): void
+    {
+        $this->due();
+        $this->due();
+        $this->due();
+
+        $gateway = new class ('999', 'k', 1) extends RedsysGateway {
+            public int $calls = 0;
+
+            public function chargeStoredCard(Subscription $subscription, string $order): ChargeResult
+            {
+                $this->calls++;
+
+                return new ChargeResult(ChargeOutcome::MerchantError, 'SIS0042');
+            }
+        };
+        $this->app->instance(RedsysGateway::class, $gateway);
+
+        $this->artisan('redsys:charge-subscriptions')->assertFailed();
+
+        // Si la firma esta mal, las otras dos fallarian igual: seguir solo
+        // machaca a Redsys y llena el historial de ruido.
+        $this->assertSame(1, $gateway->calls);
+    }
 }

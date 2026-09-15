@@ -161,4 +161,53 @@ final class SubscriptionStateTest extends TestCase
 
         $this->assertSame(1, Subscription::query()->due()->count());
     }
+
+    public function test_a_merchant_error_never_touches_the_subscription(): void
+    {
+        $s = $this->subscription(['failures' => 2, 'next_charge_at' => now()->subDay()]);
+        $before = $s->next_charge_at;
+
+        // Tu clave mal puesta le sale igual a todas. Si contara como fallo,
+        // este tercero cancelaria a un cliente que paga.
+        $s->recordCharge(ChargeOutcome::MerchantError, '1', 'SIS0042');
+
+        $s->refresh();
+        $this->assertSame(Subscription::ACTIVE, $s->status);
+        $this->assertSame(2, $s->failures);
+        $this->assertTrue($before->equalTo($s->next_charge_at));
+    }
+
+    public function test_an_unavailable_issuer_does_not_burn_an_attempt(): void
+    {
+        $s = $this->subscription(['failures' => 1, 'next_charge_at' => now()->subDay()]);
+
+        $s->recordCharge(ChargeOutcome::Unavailable, '1', '0912');
+
+        $s->refresh();
+        $this->assertSame(1, $s->failures);
+        // Sigue vencida: se reintenta en el siguiente pase, sin esperar tres dias.
+        $this->assertSame(1, Subscription::query()->due()->count());
+    }
+
+    public function test_an_expired_card_is_not_retried_for_nine_days(): void
+    {
+        $s = $this->subscription();
+
+        $s->recordCharge(ChargeOutcome::fromRedsys('0101'), '1', '0101');
+
+        $s->refresh();
+        $this->assertSame(Subscription::CANCELED, $s->status);
+        $this->assertNull($s->card_token);
+    }
+
+    public function test_both_still_leave_a_row_in_the_history(): void
+    {
+        $s = $this->subscription();
+
+        $s->recordCharge(ChargeOutcome::MerchantError, '1', 'SIS0042');
+        $s->recordCharge(ChargeOutcome::Unavailable, '2', '0912');
+
+        // No cuentan contra el cliente, pero hay que poder verlos.
+        $this->assertSame(2, $s->charges()->count());
+    }
 }

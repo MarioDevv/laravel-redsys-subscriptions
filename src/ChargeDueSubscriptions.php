@@ -61,6 +61,15 @@ class ChargeDueSubscriptions extends Command
             $subscription->recordCharge($result->outcome, $order, $result->code);
 
             $this->line("#{$subscription->id} · {$result->outcome->value} → {$subscription->status}");
+
+            // Un fallo de configuracion le sale igual a todas: seguir es
+            // machacar a Redsys y llenar el historial de ruido con un error
+            // que no es de nadie mas que tuyo.
+            if ($result->outcome === ChargeOutcome::MerchantError) {
+                $this->error("Redsys rechaza la peticion por configuracion ({$result->code}). Se detiene el pase.");
+
+                return self::FAILURE;
+            }
         }
 
         return self::SUCCESS;

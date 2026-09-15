@@ -35,6 +35,14 @@ class SubscriptionsPanel
                 ->limit(6)
                 ->get(),
             'charges'   => Charge::query()->with('subscription')->latest('created_at')->latest('id')->limit(8)->get(),
+
+            // Si esto sale una vez, sale en todas: no es la tarjeta de nadie,
+            // es la configuracion. Va arriba del todo y en rojo.
+            'merchantError' => Charge::query()
+                ->where('outcome', ChargeOutcome::MerchantError)
+                ->where('created_at', '>=', now()->subDays(7))
+                ->latest('created_at')
+                ->first(),
         ]);
     }
 
@@ -142,10 +150,12 @@ class SubscriptionsPanel
         $subscription->recordCharge($result->outcome, $order, $result->code);
 
         return back()->with('redsys_message', match ($result->outcome) {
-            ChargeOutcome::Authorized  => "Cobro hecho. {$subscription->billableName()} vuelve a estar al día.",
-            ChargeOutcome::ScaRequired => "El banco pide que {$subscription->billableName()} autentique el pago.",
-            ChargeOutcome::TokenDead   => "La tarjeta de {$subscription->billableName()} ya no vale. Hay que pedir una nueva.",
-            ChargeOutcome::Declined    => "El banco ha rechazado el cobro de {$subscription->billableName()}.",
+            ChargeOutcome::Authorized    => "Cobro hecho. {$subscription->billableName()} vuelve a estar al día.",
+            ChargeOutcome::ScaRequired   => "El banco pide que {$subscription->billableName()} autentique el pago.",
+            ChargeOutcome::TokenDead     => "La tarjeta de {$subscription->billableName()} ya no vale. Hay que pedir una nueva.",
+            ChargeOutcome::MerchantError => "Redsys ha rechazado la petición por tu configuración ({$result->code}). No es la tarjeta: revisa Ajustes.",
+            ChargeOutcome::Unavailable   => "Redsys o el emisor no estaban disponibles ({$result->code}). No cuenta como intento fallido.",
+            ChargeOutcome::Declined      => "El banco ha rechazado el cobro de {$subscription->billableName()}.",
         });
     }
 

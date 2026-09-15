@@ -15,6 +15,18 @@
 @endsection
 
 @section('content')
+    @if ($merchantError)
+        {{-- Esto no es un cobro fallido: es tu comercio mal configurado, y le
+             sale igual a todas las suscripciones. El pase se detiene solo. --}}
+        <div class="msg danger">
+            <b>Redsys está rechazando las peticiones por configuración</b>
+            El último pase se detuvo con <code>{{ $merchantError->response_code }}</code>. No es la
+            tarjeta de ningún cliente y no cuenta como intento fallido de nadie, pero
+            <u>no se está cobrando a nadie</u> hasta que se arregle.
+            Revisa <a href="{{ route('redsys.subscriptions.panel.settings') }}">Ajustes</a>.
+        </div>
+    @endif
+
     <div class="kpis">
         <div class="kpi">
             <div class="k">Ingresos al mes</div>

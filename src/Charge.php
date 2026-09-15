@@ -49,10 +49,12 @@ class Charge extends Model
     public function responseLabel(): string
     {
         $what = match ($this->outcome) {
-            ChargeOutcome::Authorized  => 'Autorizado',
-            ChargeOutcome::ScaRequired => 'El banco pide que el titular autentique',
-            ChargeOutcome::TokenDead   => 'La referencia de la tarjeta ya no vale',
-            ChargeOutcome::Declined    => 'Denegada',
+            ChargeOutcome::Authorized    => 'Autorizado',
+            ChargeOutcome::ScaRequired   => 'El banco pide que el titular autentique',
+            ChargeOutcome::TokenDead     => 'La tarjeta ya no vale',
+            ChargeOutcome::MerchantError => 'Rechazado por tu configuración, no por la tarjeta',
+            ChargeOutcome::Unavailable   => 'Redsys o el emisor no estaban disponibles',
+            ChargeOutcome::Declined      => 'Denegada',
         };
 
         return $this->response_code ? "{$this->response_code} · {$what}" : $what;
@@ -65,10 +67,12 @@ class Charge extends Model
     public function tone(): string
     {
         return match ($this->outcome) {
-            ChargeOutcome::Authorized  => 'ok',
-            ChargeOutcome::ScaRequired => 'wait',
-            ChargeOutcome::TokenDead   => 'off',
-            ChargeOutcome::Declined    => 'warn',
+            ChargeOutcome::Authorized    => 'ok',
+            ChargeOutcome::ScaRequired   => 'wait',
+            ChargeOutcome::TokenDead     => 'off',
+            ChargeOutcome::MerchantError => 'bad',
+            ChargeOutcome::Unavailable   => 'off',
+            ChargeOutcome::Declined      => 'warn',
         };
     }
 }

@@ -130,7 +130,9 @@
                   color: var(--bad-ink); display: block; }
     .msg.wait { border-left-color: var(--wait-ink); background: var(--wait-bg); border-color: #ddd0f5;
                 color: var(--wait-ink); display: block; }
-    .msg.danger b, .msg.wait b { display: block; margin-bottom: .2rem; color: inherit; }
+    .msg.danger > b, .msg.wait > b { display: block; margin-bottom: .2rem; color: inherit; }
+    .msg.danger a { text-decoration: underline; font-weight: 600; }
+    .msg.danger code { background: #f6d9d9; padding: .1rem .3rem; border-radius: 4px; }
     .msg.danger pre { margin: .6rem 0 0; padding: .7rem .8rem; border-radius: 8px; overflow-x: auto;
                       background: var(--ink); color: #d6e2ee; font-family: var(--mono); font-size: .78rem; }
 
@@ -152,6 +154,7 @@
     .why.past_due_sca, .why.wait { color: var(--wait-ink); }
     .why.ok { color: var(--ok-ink); }
     .why.off { color: var(--muted); }
+    .why.bad { color: var(--bad-ink); font-weight: 600; }
     /* Importes, pedidos y últimos cuatro dígitos en monoespaciada: se comparan
        en columna y se dictan por teléfono. Sin webfont, la del sistema basta. */
     .amount { color: var(--ink); font-weight: 600; font-family: var(--mono); font-size: .87rem;

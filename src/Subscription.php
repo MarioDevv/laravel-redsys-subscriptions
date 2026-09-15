@@ -267,12 +267,21 @@ class Subscription extends Model
                 'status' => self::PAST_DUE_SCA,
             ]),
 
-            // La referencia ya no existe. Reintentar es tirar peticiones.
+            // La tarjeta ya no vale. Reintentar es tirar peticiones: lo unico
+            // que arregla esto es que el titular registre otra.
             ChargeOutcome::TokenDead => $this->fill([
                 'status'     => self::CANCELED,
                 'card_token' => null,
                 'ends_at'    => now(),
             ]),
+
+            // Culpa de la configuracion del comercio, no del titular. Le sale
+            // igual a todas las suscripciones, asi que ni suma fallo ni mueve
+            // la fecha: se queda vencida y se cobrara cuando esto se arregle.
+            ChargeOutcome::MerchantError,
+
+            // Transitorio. El titular no ha hecho nada; no gasta intento.
+            ChargeOutcome::Unavailable => $this->fill([]),
 
             // Reintentar manana, no dentro de una hora. Sin mover la fecha la
             // suscripcion sigue vencida y el siguiente pase la vuelve a cobrar:

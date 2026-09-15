@@ -267,12 +267,24 @@ quedarte su dinero. Para dar acceso mira `valid()`, no `active()`.
 
 Las transiciones no son de manual: salen de observar qué responde Redsys.
 
-| Respuesta de Redsys | Estado | En el panel | Qué hacer |
-|---|---|---|---|
-| `0000`–`0099` | `active` | Activa | Nada. Se reinicia el contador de fallos. |
-| `0195` | `past_due_sca` | Pendiente del titular | Enviar al titular a reautenticar. **No reintentar. No cancelar.** |
-| `SIS0321` | `canceled` | Cancelada | La referencia ya no vale. Pedir tarjeta nueva. |
-| Otra denegación | `past_due` | Reintentando | Reintentar, hasta 3 veces, cada 3 días. |
+| Respuesta de Redsys | Estado | Qué hacer |
+|---|---|---|
+| `0000`–`0099` | `active` | Nada. Se reinicia el contador de fallos. |
+| `0195` | `past_due_sca` | Enviar al titular a reautenticar. **No reintentar. No cancelar.** |
+| `SIS0321`, `0101`, `0191`, `0125`, `0106`, `0202`, `9093`, `9253` | `canceled` | La tarjeta está muerta. Mandar un `cardUpdateLink()`. |
+| `SIS0042`, `SIS0026`, `SIS0028`, `SIS0430`, `0904`, `9104`, `9218`, `9256` | *sin cambios* | **Es tu configuración, no la tarjeta.** El pase se detiene. |
+| `0909`, `0912`, `9912`, `9997`, `9998`, `9999`, `0913`, `SIS0051`, `SIS0001` | *sin cambios* | Transitorio. Se reintenta sin gastar intento. |
+| Otra denegación | `past_due` | Reintentar, hasta 3 veces, cada 3 días. |
+
+Las dos filas de en medio son las que más caro cuestan si se ignoran, y son las
+que casi todo el mundo mete en el mismo saco que una denegación:
+
+- **Un fallo de comercio le sale igual a todas tus suscripciones.** Tratado como
+  denegación, una clave mal puesta te **cancela la cartera entera** en tres
+  pases. Aquí no suma fallo, no cancela, no mueve la fecha, y el comando aborta
+  el pase en cuanto ve uno.
+- **Un emisor caído no es culpa del titular.** No puede gastarle uno de sus tres
+  intentos.
 
 El valor guardado es el de la columna «Estado»; lo traducido es solo la etiqueta,
 y sale de `Subscription::statusLabels()`.
@@ -283,7 +295,8 @@ Dos detalles que cuestan caro si se ignoran:
   para *esa* cuota. La tarjeta sigue viva y volverá a cobrar el mes siguiente.
   Cancelar aquí es tirar clientes que pagan.
 - **Cada intento necesita su propio número de pedido.** Redsys rechaza los
-  repetidos con `SIS0051`, reintentos incluidos.
+  repetidos con `SIS0051`, reintentos incluidos. Ese código cuenta como
+  transitorio y no como fallo del titular: el choque es nuestro, no suyo.
 - **Un fallo espera `Subscription::RETRY_DAYS` antes del siguiente intento.**
   Reintentar el mismo día es gastar los tres contra el mismo saldo vacío; tres
   días dan margen a que entre una nómina.
