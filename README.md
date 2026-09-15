@@ -166,7 +166,9 @@ El paquete trae un panel para operar en producción, en `/redsys-subscriptions`:
 - **Resumen** — ingresos al mes, activas, sin cobrar, altas sin terminar, quién
   necesita atención y qué se cobra a continuación.
 - **Suscripciones** — listado buscable por nº, pedido, últimos cuatro dígitos o
-  referencia, filtrable por estado. Desde aquí se **da de baja** y se **lanza un
+  referencia, filtrable por estado. Los cuatro dígitos solo están si tu comercio
+  tiene activado el envío del número enmascarado en su TPV: Redsys no lo manda
+  por defecto, ni en la notificación ni en la respuesta del cobro. Desde aquí se **da de baja** y se **lanza un
   cobro en el momento**, que es lo que hace falta cuando un cliente llama
   diciendo que ya tiene saldo.
 - **Ficha de una suscripción** — la tarjeta guardada, el cobro y el **historial
@@ -332,13 +334,20 @@ Lo que hay probado, y contra qué:
 
 | | Contra el sandbox de Redsys | Solo con tests |
 |---|---|---|
-| Cobro MIT, códigos de respuesta, `0195`, `SIS0321` | sí | |
-| Formulario de alta COF | sí, hasta la puerta | |
+| Alta de tarjeta COF, **3DS incluido** | sí, entera | |
+| Cobro MIT con la referencia guardada | sí | |
+| `0000`, `SIS0321`, `SIS0042`, `SIS0051` | sí | |
+| `0195` y el resto de códigos | | sí |
 | Verificación de firma, SHA-256 y SHA-512 | | sí |
 | «Enviar parámetros en las URLs» en NO | | sí |
 | Notificación servidor-a-servidor | **no** | sí |
 
-El 3DS real y la notificación servidor-a-servidor todavía no han tocado Redsys.
+El alta pasa el 3DS de verdad y el cobro recurrente sale autorizado sin volver a
+pedir autenticación, que es lo que tenía que demostrar la exención MIT.
+
+**Lo que sigue sin tocar Redsys es la notificación servidor-a-servidor**, porque
+Redsys no puede alcanzar `localhost`. En el laboratorio el alta se completa por
+la vuelta del navegador.
 
 ### Antes de la 1.0
 

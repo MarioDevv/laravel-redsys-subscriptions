@@ -93,7 +93,16 @@
                     <dl class="kv">
                         <dt>Tarjeta</dt>
                         <dd class="digits">
-                            ···· ···· ···· {{ $subscription->card_last_four ?? '????' }}
+                            @if ($subscription->card_last_four)
+                                ···· ···· ···· {{ $subscription->card_last_four }}
+                            @else
+                                {{-- Redsys solo manda Ds_Card_Number si el comercio lo tiene
+                                     activado en su TPV. Sin eso hay tarjeta, pero no sabemos
+                                     cual: decir «????» seria fingir que se ha perdido. --}}
+                                <span class="expiry">
+                                    Tu comercio no envía el número enmascarado
+                                </span>
+                            @endif
                             @if ($subscription->card_expiry)
                                 <span class="expiry">
                                     caduca {{ substr($subscription->card_expiry, 2, 2) }}/{{ substr($subscription->card_expiry, 0, 2) }}
