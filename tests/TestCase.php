@@ -32,6 +32,11 @@ abstract class TestCase extends Orchestra
             'foreign_key_constraints' => true,
         ]);
 
+        // Laravel 13 ya no pone una clave por defecto en los tests, y el panel
+        // va detras del grupo 'web': sesion y cookies cifradas la necesitan.
+        // En una aplicacion de verdad siempre existe; aqui hay que ponerla.
+        $app['config']->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
+
         // El driver por defecto de testbench es 'database', que para los locks
         // del comando de cobro pide la tabla cache_locks de Laravel. Aqui no
         // hace falta: array da locks atomicos dentro del proceso, que es lo

@@ -1,0 +1,51 @@
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Cada Laravel contra su PHP minimo y contra el mas nuevo: ahi es donde
+    # aparecen las incompatibilidades. Laravel 12 admite PHP 8.2, la 13 pide
+    # 8.3, y cada una tiene su testbench.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { php: '8.2', laravel: '^12.0', testbench: '^10.0' }
+          - { php: '8.4', laravel: '^12.0', testbench: '^10.0' }
+          - { php: '8.3', laravel: '^13.0', testbench: '^11.0' }
+          - { php: '8.4', laravel: '^13.0', testbench: '^11.0' }
+
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          # pdo_sqlite para la base en memoria. Sin el, las migraciones
+          # revientan y el fallo no dice por que.
+          extensions: pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Instalar dependencias
+        run: |
+          composer require --dev --no-interaction --no-update \
+            "orchestra/testbench:${{ matrix.testbench }}"
+          composer require --no-interaction --no-update \
+            "illuminate/console:${{ matrix.laravel }}" \
+            "illuminate/database:${{ matrix.laravel }}" \
+            "illuminate/support:${{ matrix.laravel }}"
+          composer update --prefer-dist --no-interaction
+
+      - name: Comprobar que el composer.json es publicable
+        run: composer validate --strict --no-check-lock
+
+      - name: Tests
+        run: vendor/bin/phpunit

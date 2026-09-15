@@ -4,6 +4,7 @@
 [![Descargas](https://img.shields.io/packagist/dt/mariodevv/laravel-redsys-subscriptions.svg)](https://packagist.org/packages/mariodevv/laravel-redsys-subscriptions)
 [![PHP](https://img.shields.io/packagist/dependency-v/mariodevv/laravel-redsys-subscriptions/php.svg)](composer.json)
 [![Licencia](https://img.shields.io/packagist/l/mariodevv/laravel-redsys-subscriptions.svg)](LICENSE)
+[![Tests](https://github.com/MarioDevv/laravel-redsys-subscriptions/actions/workflows/tests.yml/badge.svg)](https://github.com/MarioDevv/laravel-redsys-subscriptions/actions/workflows/tests.yml)
 
 Suscripciones y cobros recurrentes con **Redsys** para Laravel.
 
@@ -51,8 +52,13 @@ composer require mariodevv/laravel-redsys-subscriptions
 php artisan migrate
 ```
 
-Laravel 11, 12 y 13. En la 13 no hace falta forzar nada: `creagia/redsys-php`
-pide `guzzle ^7`, la 13 acepta `^7.8.2 || ^8.0`, y composer resuelve la 7.15.
+Laravel 12 y 13, PHP 8.2 o superior. En la 13 no hace falta forzar nada:
+`creagia/redsys-php` pide `guzzle ^7`, la 13 acepta `^7.8.2 || ^8.0`, y composer
+resuelve la 7.15.
+
+Laravel 11 se quedó fuera: su soporte de seguridad terminó y Composer bloquea
+todas sus versiones por avisos, así que declararlo sería prometer algo que nadie
+puede instalar.
 
 ```dotenv
 REDSYS_MERCHANT_CODE=
@@ -466,8 +472,6 @@ Dos cosas, y ninguna es una función nueva:
 
 Ninguna bloquea la 1.0, todas salieron de usar el paquete de verdad:
 
-- **Sin integración continua.** Los 88 tests solo corren si alguien los lanza.
-  Para un paquete publicado, eso es un hueco.
 - **`past_due_sca` corta el acceso.** `valid()` mira `active()` o periodo de
   gracia, así que un titular al que el banco le pide autenticar pierde el
   servicio aunque su tarjeta siga viva y vaya a cobrar el mes que viene.
