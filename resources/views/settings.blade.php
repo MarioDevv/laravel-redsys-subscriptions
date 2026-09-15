@@ -12,7 +12,7 @@
                 <dt>{{ $label }}</dt>
                 <dd>
                     @if ($value === null)
-                        <span class="pill canceled">sin configurar</span>
+                        <span class="pill alert">Sin configurar</span>
                     @else
                         {{ $value }}
                     @endif
@@ -42,17 +42,23 @@
                 @if ($gateDefined)
                     Decide tu Gate <code>viewRedsysSubscriptions</code>
                 @else
-                    <span class="pill past_due">solo en local</span>
+                    <span class="pill alert">Solo en local</span>
                 @endif
             </dd>
             <dt>Cobro automático</dt>
             <dd><code>php artisan redsys:charge-subscriptions</code></dd>
         </dl>
         @unless ($gateDefined)
-            <p class="msg" style="margin: 0 1.1rem 1.1rem">
-                Sin ese Gate definido, nadie puede entrar aquí fuera de tu máquina.
-                Defínelo en un ServiceProvider para dar acceso a tu equipo.
-            </p>
+            <div class="msg danger" style="margin: 0 1.1rem 1.1rem">
+                <b>El Gate no está definido</b>
+                Fuera de <code>local</code> no entra nadie hasta que lo definas. Aquí están los
+                datos de pago de todos tus clientes, así que el paquete viene cerrado.
+                Defínelo en un ServiceProvider:
+<pre>use Illuminate\Support\Facades\Gate;
+use MarioDevv\RedsysSubscriptions\Authorize;
+
+Gate::define(Authorize::GATE, fn ($user) =&gt; $user-&gt;isAdmin());</pre>
+            </div>
         @endunless
     </div>
 @endsection

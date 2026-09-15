@@ -8,6 +8,16 @@
 @section('content')
     <div class="card">
         <div class="cap" style="flex-wrap: wrap; gap: .75rem">
+            <form method="get" class="search">
+                @if ($status !== '')<input type="hidden" name="status" value="{{ $status }}">@endif
+                <input type="search" name="q" value="{{ $search }}"
+                       placeholder="Número, pedido, últimos cuatro dígitos o referencia">
+                <button type="submit">Buscar</button>
+                @if ($search !== '')
+                    <a class="btn quiet" href="{{ route('redsys.subscriptions.panel.list', ['status' => $status ?: null]) }}">Quitar</a>
+                @endif
+            </form>
+
             <div class="chips">
                 <a href="{{ route('redsys.subscriptions.panel.list') }}" class="{{ $status === '' ? 'on' : '' }}">
                     Todas {{ $stats['all'] }}
@@ -19,16 +29,6 @@
                     </a>
                 @endforeach
             </div>
-
-            <form method="get" style="display:flex; gap:.4rem; min-width: 18rem; flex: 1">
-                @if ($status !== '')<input type="hidden" name="status" value="{{ $status }}">@endif
-                <input type="search" name="q" value="{{ $search }}"
-                       placeholder="Número, pedido, últimos cuatro dígitos o referencia">
-                <button type="submit">Buscar</button>
-                @if ($search !== '')
-                    <a class="btn quiet" href="{{ route('redsys.subscriptions.panel.list', ['status' => $status ?: null]) }}">Quitar</a>
-                @endif
-            </form>
         </div>
 
         @if ($subscriptions->isEmpty())
@@ -50,9 +50,11 @@
             </p>
 
             <table class="t-subs">
+                {{-- «Pendiente del titular» es la etiqueta más larga y no se
+                     abrevia: la columna de estado se dimensiona por ella. --}}
                 <colgroup>
-                    <col style="width:24%"><col style="width:13%"><col style="width:13%">
-                    <col style="width:12%"><col style="width:15%"><col>
+                    <col style="width:21%"><col style="width:18%"><col style="width:12%">
+                    <col style="width:12%"><col style="width:14%"><col>
                 </colgroup>
                 <thead>
                     <tr>
@@ -90,27 +92,29 @@
                 @foreach ($subscriptions as $s)
                     <tr>
                         <td class="who" title="{{ $s->billableName() }}">
-                            {{ $s->billableName() }}
+                            <a href="{{ route('redsys.subscriptions.panel.show', $s) }}">{{ $s->billableName() }}</a>
                             <span>Nº {{ $s->id }}@if ($s->name !== 'default'), {{ $s->name }}@endif</span>
                         </td>
                         <td>
                             <span class="pill {{ $s->status }}">{{ $s->statusLabel() }}</span>
                             @if ($s->failures)
-                                <span class="muted" style="font-size:.78rem; display:block; margin-top:.15rem">
-                                    {{ $s->failures }} {{ $s->failures === 1 ? 'intento' : 'intentos' }}
+                                <span class="why {{ $s->status }}">
+                                    Intento {{ $s->failures }} de {{ Subscription::MAX_FAILURES }}
                                 </span>
                             @endif
                         </td>
                         <td class="num amount">
-                            {{ number_format($s->amount_in_cents / 100, 2, ',', '.') }} €
+                            {{ $s->amountLabel() }}
                             <span>/ {{ ['monthly' => 'mes', 'weekly' => 'semana', 'yearly' => 'año'][$s->interval] ?? $s->interval }}</span>
                         </td>
                         <td class="hide-narrow digits">
                             @if ($s->card_last_four)
                                 ···· {{ $s->card_last_four }}
-                                <span class="muted" style="font-size:.78rem; display:block">
-                                    caduca {{ substr($s->card_expiry, 2, 2) }}/{{ substr($s->card_expiry, 0, 2) }}
-                                </span>
+                                @if ($s->card_expiry)
+                                    <span class="expiry">
+                                        caduca {{ substr($s->card_expiry, 2, 2) }}/{{ substr($s->card_expiry, 0, 2) }}
+                                    </span>
+                                @endif
                             @elseif ($s->card_token)
                                 <span class="muted">referencia guardada</span>
                             @else
@@ -134,22 +138,7 @@
                                 </span>
                             @endif
                         </td>
-                        <td>
-                            @if ($s->card_token && $s->status !== Subscription::CANCELED)
-                                <div class="row-acts">
-                                    <form method="post" action="{{ route('redsys.subscriptions.panel.charge', $s) }}"
-                                          onsubmit="return confirm('Se cobrarán {{ number_format($s->amount_in_cents / 100, 2, ',', '.') }} € a {{ addslashes($s->billableName()) }} ahora mismo.')">
-                                        @csrf
-                                        <button type="submit">Cobrar ahora</button>
-                                    </form>
-                                    <form method="post" action="{{ route('redsys.subscriptions.panel.cancel', $s) }}"
-                                          onsubmit="return confirm('{{ addslashes($s->billableName()) }} dejará de pagar. Conserva el acceso hasta el final del periodo que ya pagó.')">
-                                        @csrf
-                                        <button type="submit" class="quiet risky">Dar de baja</button>
-                                    </form>
-                                </div>
-                            @endif
-                        </td>
+                        <td>@include('redsys-subscriptions::partials.actions')</td>
                     </tr>
                 @endforeach
                 </tbody>

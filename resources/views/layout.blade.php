@@ -5,32 +5,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>@yield('title', 'Suscripciones')</title>
+{{-- Inter para el texto y JetBrains Mono para las cifras. Si no hay red, la
+     pila de respaldo es la del sistema y el panel se lee igual. --}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
     :root {
-        --bg:        #f7f9fc;
+        --bg:        #f6f7f9;
         --surface:   #ffffff;
-        --line:      #e8ebf1;
-        --line-soft: #f1f3f8;
-        --ink:       #0e1f35;
-        --body:      #4a5772;
-        --muted:     #7b879d;
-        --accent:    #5b57e0;
-        --accent-bg: #eeedfd;
-        --shadow:    0 1px 2px rgba(14,31,53,.06), 0 2px 8px rgba(14,31,53,.04);
-        --shadow-sm: 0 1px 2px rgba(14,31,53,.07);
-        --radius:    10px;
+        --line:      #e4e8ed;
+        --line-soft: #f0f2f5;
+        --ink:       #0f1419;
+        --body:      #59616d;
+        --muted:     #8b939f;
+        --accent:    #1f6feb;
+        --accent-bg: #e8f0fe;
+        --shadow:    0 1px 2px rgba(15,20,25,.05), 0 2px 8px rgba(15,20,25,.035);
+        --shadow-sm: 0 1px 2px rgba(15,20,25,.06);
+        --radius:    12px;
 
-        --ok-bg:   #e7f6ee;  --ok-ink:   #10714a;  --ok-dot:   #17936a;
-        --warn-bg: #fdf3e3;  --warn-ink: #8a5a13;  --warn-dot: #d99125;
-        --info-bg: #eaf1fd;  --info-ink: #1c4f96;  --info-dot: #3b7cd8;
-        --bad-bg:  #fdeceb;  --bad-ink:  #96271f;  --bad-dot:  #d0483c;
-        --off-bg:  #f0f2f6;  --off-ink:  #5b6579;  --off-dot:  #9aa4b6;
+        /* El color del estado no es decoración: dice qué hacer con la fila.
+           Verde no toques, ámbar reintentando, violeta espera al titular,
+           gris terminado. Rojo se reserva para lo que destruye algo. */
+        --ok-bg:   #e7f5ec;  --ok-ink:   #15803d;
+        --warn-bg: #fbf0e2;  --warn-ink: #b45309;
+        --wait-bg: #f0eafb;  --wait-ink: #6d28d9;
+        --off-bg:  #eef1f4;  --off-ink:  #64748b;
+        --bad-bg:  #fdecec;  --bad-ink:  #b91c1c;
+
+        --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
         margin: 0; background: var(--bg); color: var(--body);
-        font: 14.5px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        font: 14px/1.55 var(--font);
         -webkit-font-smoothing: antialiased;
     }
     a { color: inherit; text-decoration: none; }
@@ -49,7 +60,8 @@
         flex: none;
     }
     .brand b { color: var(--ink); font-size: .95rem; font-weight: 600; display: block; line-height: 1.2; }
-    .brand small { color: var(--muted); font-size: .76rem; }
+    .brand small { color: var(--muted); font-size: .76rem; display: block;
+                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .side nav { padding: .35rem .6rem; display: flex; flex-direction: column; gap: .1rem; }
     .side nav a {
@@ -66,6 +78,20 @@
     }
     .side nav a.on .tag { background: #fff; color: var(--accent); }
 
+    /* El recuento por estado, siempre a la vista y siempre en el mismo orden:
+       es el primer sitio donde se mira si algo se ha torcido esta noche. */
+    .states { padding: .9rem 1.1rem 0; }
+    .states h3 { font-size: .68rem; font-weight: 600; letter-spacing: .06em; color: var(--muted);
+                 text-transform: uppercase; margin-bottom: .5rem; }
+    .states a { display: flex; align-items: center; gap: .5rem; padding: .27rem 0; font-size: .84rem; }
+    .states a:hover { color: var(--ink); }
+    .states i { width: .45rem; height: .45rem; border-radius: 50%; flex: none; }
+    .states b { margin-left: auto; font-family: var(--mono); font-size: .78rem; font-weight: 500; color: var(--muted); }
+    .dot.active { background: var(--ok-ink); }
+    .dot.past_due { background: var(--warn-ink); }
+    .dot.past_due_sca { background: var(--wait-ink); }
+    .dot.canceled, .dot.incomplete { background: var(--off-ink); }
+
     .side .foot { margin-top: auto; padding: 1rem 1.1rem; border-top: 1px solid var(--line); }
     .env { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 600;
            padding: .2rem .55rem; border-radius: 99px; }
@@ -75,22 +101,38 @@
 
     /* ---------- Contenido ---------- */
     .main { padding: 2rem 2.25rem 4rem; min-width: 0; }
-    .head { margin-bottom: 1.5rem; }
-    .head h1 { font-size: 1.32rem; font-weight: 600; letter-spacing: -.01em; }
+    .head { margin-bottom: 1.5rem; display: flex; align-items: center;
+            justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .crumbs { display: flex; align-items: center; gap: .4rem; margin-bottom: .7rem;
+              color: var(--muted); font-size: .85rem; }
+    .crumbs a:hover { color: var(--ink); }
+    .head h1 { font-size: 1.32rem; font-weight: 600; letter-spacing: -.01em;
+               display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
     .head p { margin: .2rem 0 0; color: var(--muted); font-size: .9rem; }
 
     .card { background: var(--surface); border: 1px solid var(--line);
             border-radius: var(--radius); box-shadow: var(--shadow); }
-    .card + .card { margin-top: 1.15rem; }
+    /* Una sola regla para el aire entre bloques, sea card, pareja o rejilla de
+       cifras. Con `.card + .card` se pegaban los que no eran hermanos directos. */
+    .stack > * + * { margin-top: 1.15rem; }
     .card .cap { padding: .95rem 1.1rem; border-bottom: 1px solid var(--line-soft);
                  display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .card .cap h2 { font-size: .95rem; font-weight: 600; }
-    .card .cap a { color: var(--accent); font-size: .85rem; font-weight: 500; }
+    /* Solo el enlace suelto del encabezado («Ver todas»), no lo que cuelgue
+       dentro. Sin el `>` se lleva por delante los filtros y su estado activo. */
+    .card .cap > a { color: var(--accent); font-size: .85rem; font-weight: 500; }
 
     .msg { display: flex; gap: .6rem; padding: .75rem 1rem; background: var(--surface);
            border: 1px solid var(--line); border-left: 3px solid var(--accent);
            border-radius: 8px; box-shadow: var(--shadow-sm); margin-bottom: 1.15rem;
            color: var(--ink); font-size: .9rem; }
+    .msg.danger { border-left-color: var(--bad-ink); background: var(--bad-bg); border-color: #f3d3d3;
+                  color: var(--bad-ink); display: block; }
+    .msg.wait { border-left-color: var(--wait-ink); background: var(--wait-bg); border-color: #ddd0f5;
+                color: var(--wait-ink); display: block; }
+    .msg.danger b, .msg.wait b { display: block; margin-bottom: .2rem; color: inherit; }
+    .msg.danger pre { margin: .6rem 0 0; padding: .7rem .8rem; border-radius: 8px; overflow-x: auto;
+                      background: var(--ink); color: #d6e2ee; font-family: var(--mono); font-size: .78rem; }
 
     /* ---------- Tablas ---------- */
     table { width: 100%; border-collapse: collapse; }
@@ -101,11 +143,21 @@
     tbody tr:hover { background: #fbfcfe; }
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .who { color: var(--ink); font-weight: 550; }
+    .who a:hover { color: var(--accent); text-decoration: underline; }
     .who span { display: block; font-weight: 400; color: var(--muted); font-size: .78rem; }
-    .amount { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    /* El motivo va en el color de su estado: en una lista de seis, es lo que
+       distingue «reintenta solo» de «manda al titular al banco». */
+    .why { display: block; font-weight: 500; font-size: .79rem; margin-top: .1rem; }
+    .why.past_due { color: var(--warn-ink); }
+    .why.past_due_sca { color: var(--wait-ink); }
+    /* Importes, pedidos y últimos cuatro dígitos en monoespaciada: se comparan
+       en columna y se dictan por teléfono. Sin webfont, la del sistema basta. */
+    .amount { color: var(--ink); font-weight: 600; font-family: var(--mono); font-size: .87rem;
+              font-variant-numeric: tabular-nums; white-space: nowrap; }
     .amount span { color: var(--muted); font-weight: 400; }
     .muted { color: var(--muted); }
-    .digits { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+    .digits { font-family: var(--mono); font-size: .85rem; font-variant-numeric: tabular-nums; }
+    .expiry { display: block; font-size: .78rem; color: var(--muted); }
     .nowrap { white-space: nowrap; }
 
     /* El nombre y los importes no parten: se cortan antes con puntos. */
@@ -121,9 +173,18 @@
     .pill::before { content: ""; width: .4rem; height: .4rem; border-radius: 50%; background: currentColor; }
     .pill.active       { background: var(--ok-bg);   color: var(--ok-ink); }
     .pill.past_due     { background: var(--warn-bg); color: var(--warn-ink); }
-    .pill.past_due_sca { background: var(--info-bg); color: var(--info-ink); }
-    .pill.canceled     { background: var(--bad-bg);  color: var(--bad-ink); }
+    /* Violeta, no rojo: 0195 no es un rechazo de tarjeta, es el titular
+       pendiente de autenticar. Pintarlo de error hace que se cancelen
+       clientes que pagan. */
+    .pill.past_due_sca { background: var(--wait-bg); color: var(--wait-ink); }
+    /* Gris, no rojo: una baja es un final ordenado, no una avería. */
+    .pill.canceled     { background: var(--off-bg);  color: var(--off-ink); }
     .pill.incomplete   { background: var(--off-bg);  color: var(--off-ink); }
+    /* Estas dos no son estados de una suscripción, son el estado de la
+       configuración. Van aparte para no colgarse de un nombre de estado. */
+    .pill.alert        { background: var(--bad-bg);  color: var(--bad-ink); }
+    /* Ámbar, no rojo: «esto aún no está» no es una avería del panel. */
+    .pill.soon         { background: var(--warn-bg); color: var(--warn-ink); }
 
     /* ---------- Controles ---------- */
     button, .btn {
@@ -133,11 +194,18 @@
         white-space: nowrap; display: inline-flex; align-items: center; gap: .35rem;
     }
     button:hover, .btn:hover { background: #fbfcfe; border-color: #d9dfe9; }
+    /* Una acción principal por fila. Cobrar es la que se busca cuando llama un
+       cliente; dar de baja no se pulsa por error si no compite en peso. */
+    button.primary, .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.primary:hover, .btn.primary:hover { background: #1a5fd0; border-color: #1a5fd0; }
     button.quiet { box-shadow: none; border-color: transparent; background: transparent; color: var(--body); }
     button.quiet:hover { background: var(--line-soft); }
     button.risky:hover { color: var(--bad-ink); border-color: #f0c7c2; background: #fef7f6; }
     form { display: inline; }
-    .row-acts { display: flex; gap: .35rem; justify-content: flex-end; flex-wrap: wrap; }
+    /* Las dos acciones van en una línea. Si «Dar de baja» cae debajo del botón
+       azul deja de leerse como la alternativa y parece otra cosa. */
+    .row-acts { display: flex; gap: .35rem; justify-content: flex-end; flex-wrap: nowrap; }
+    td:has(> .row-acts) { width: 1%; white-space: nowrap; }
 
     input[type=search] {
         font: inherit; font-size: .88rem; padding: .42rem .7rem; border: 1px solid var(--line);
@@ -148,6 +216,9 @@
     input[type=search]:focus { border-color: var(--accent); outline: none;
                                box-shadow: 0 0 0 3px var(--accent-bg); }
 
+    /* Ancho fijo: el buscador no tiene por qué comerse la fila entera, y los
+       filtros pierden sitio si crece. */
+    .search { display: flex; gap: .4rem; width: 27rem; max-width: 100%; }
     .chips { display: flex; gap: .35rem; flex-wrap: wrap; }
     .chips a { font-size: .84rem; font-weight: 500; padding: .3rem .65rem; border-radius: 99px;
                color: var(--body); background: var(--line-soft); }
@@ -174,7 +245,7 @@
     .pages .btn.off { color: var(--muted); box-shadow: none; background: var(--line-soft); }
 
     /* ---------- Cifras y rejillas ---------- */
-    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.15rem; }
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
     .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
            box-shadow: var(--shadow); padding: 1rem 1.1rem; }
     a.kpi { display: block; }
@@ -185,8 +256,9 @@
               font-variant-numeric: tabular-nums; margin-top: .25rem; line-height: 1.15; }
     .kpi .v small { font-size: .9rem; font-weight: 500; color: var(--muted); }
     .kpi .s { font-size: .79rem; color: var(--muted); margin-top: .15rem; }
-    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.15rem; }
-    .pair .card + .card { margin-top: 0; }
+    /* Asimétrico a propósito: lo que necesita atención lleva acciones y motivo,
+       los próximos cobros son tres datos. Igualarlos aprieta al que decide. */
+    .pair { display: grid; grid-template-columns: 1.75fr 1fr; gap: 1.15rem; align-items: start; }
 
     .kv { display: grid; grid-template-columns: 12rem 1fr; gap: .1rem 1rem; padding: .3rem 0; }
     .kv > dt { padding: .55rem 1.1rem; color: var(--muted); font-size: .87rem; }
@@ -217,7 +289,13 @@
             <span class="glyph" aria-hidden="true">R</span>
             <span>
                 <b>Suscripciones</b>
-                <small>Cobros por Redsys</small>
+                <small class="digits">
+                    @if (config('redsys-subscriptions.merchant_code'))
+                        Comercio {{ config('redsys-subscriptions.merchant_code') }}
+                    @else
+                        Sin comercio
+                    @endif
+                </small>
             </span>
         </div>
 
@@ -247,6 +325,17 @@
             </a>
         </nav>
 
+        <div class="states">
+            <h3>Estados</h3>
+            @foreach (Subscription::statusLabels() as $value => $label)
+                <a href="{{ route('redsys.subscriptions.panel.list', ['status' => $value]) }}">
+                    <i class="dot {{ $value }}" aria-hidden="true"></i>
+                    {{ $label }}
+                    <b>{{ $stats['counts'][$value] }}</b>
+                </a>
+            @endforeach
+        </div>
+
         <div class="foot">
             @if (config('redsys-subscriptions.production'))
                 <span class="env live">Entorno real</span>
@@ -259,16 +348,23 @@
     </aside>
 
     <main class="main">
+        @yield('crumbs')
+
         <div class="head">
-            <h1>@yield('heading')</h1>
-            <p>@yield('subheading')</p>
+            <div>
+                <h1>@yield('heading')</h1>
+                <p>@yield('subheading')</p>
+            </div>
+            @yield('actions')
         </div>
 
         @if (session('redsys_message'))
             <p class="msg">{{ session('redsys_message') }}</p>
         @endif
 
-        @yield('content')
+        <div class="stack">
+            @yield('content')
+        </div>
     </main>
 </div>
 @stack('scripts')

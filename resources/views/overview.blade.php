@@ -5,6 +5,15 @@
 @section('heading', 'Resumen')
 @section('subheading', 'Cómo van los cobros recurrentes ahora mismo.')
 
+@section('actions')
+    {{-- El mismo pase que hace el cron, pero cuando tú lo dices. --}}
+    <form method="post" action="{{ route('redsys.subscriptions.panel.run') }}"
+          onsubmit="return confirm('Se cobrará ahora mismo todo lo que esté vencido. Los cobros salen de verdad si el entorno es el real.')">
+        @csrf
+        <button type="submit">Lanzar cobro ahora</button>
+    </form>
+@endsection
+
 @section('content')
     <div class="kpis">
         <div class="kpi">
@@ -47,17 +56,21 @@
                     @foreach ($attention as $s)
                         <tr>
                             <td class="who">
-                                {{ $s->billableName() }}
-                                <span>
+                                <a href="{{ route('redsys.subscriptions.panel.show', $s) }}">{{ $s->billableName() }}</a>
+                                <span class="why {{ $s->status }}">
                                     @if ($s->status === Subscription::PAST_DUE_SCA)
-                                        El banco pide que autentique el pago
+                                        0195 · el banco pide que autentique
                                     @else
-                                        {{ $s->failures }} {{ $s->failures === 1 ? 'intento fallido' : 'intentos fallidos' }}
+                                        Intento {{ $s->failures }} de {{ Subscription::MAX_FAILURES }}
                                     @endif
                                 </span>
+                                <span class="digits">
+                                    Nº {{ $s->id }}@if ($s->card_last_four) · ···· {{ $s->card_last_four }}@endif
+                                </span>
                             </td>
-                            <td class="num"><span class="pill {{ $s->status }}">{{ $s->statusLabel() }}</span></td>
-                            <td class="num amount">{{ number_format($s->amount_in_cents / 100, 2, ',', '.') }} €</td>
+                            <td><span class="pill {{ $s->status }}">{{ $s->statusLabel() }}</span></td>
+                            <td class="num amount">{{ $s->amountLabel() }}</td>
+                            <td>@include('redsys-subscriptions::partials.actions')</td>
                         </tr>
                     @endforeach
                     </tbody>
@@ -94,12 +107,59 @@
                             <td class="num muted nowrap" title="{{ $s->next_charge_at->format('j/n/Y') }}">
                                 {{ Subscription::humanDate($s->next_charge_at) }}
                             </td>
-                            <td class="num amount">{{ number_format($s->amount_in_cents / 100, 2, ',', '.') }} €</td>
+                            <td class="num amount">{{ $s->amountLabel() }}</td>
                         </tr>
                     @endforeach
                     </tbody>
                 </table>
             @endif
         </div>
+    </div>
+
+    <div class="card">
+        <div class="cap">
+            <h2>Últimos cobros</h2>
+            <span class="pill soon">Hoja de ruta · todavía no se guarda ningún intento</span>
+        </div>
+
+        <table>
+            <colgroup>
+                <col style="width:14%"><col style="width:24%"><col style="width:14%">
+                <col><col style="width:12%">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Cuándo</th>
+                    <th>Titular</th>
+                    <th class="hide-narrow">Pedido</th>
+                    <th>Respuesta de Redsys</th>
+                    <th class="num">Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+            @forelse ($charges as $charge)
+                <tr>
+                    <td class="digits">{{ $charge->created_at->format('j/n H:i') }}</td>
+                    <td class="who">{{ $charge->subscription->billableName() }}</td>
+                    <td class="hide-narrow digits">{{ $charge->order }}</td>
+                    <td class="why {{ $charge->status }}">{{ $charge->responseLabel() }}</td>
+                    <td class="num amount">{{ $charge->amountLabel() }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5">
+                        <div class="empty">
+                            <b>Aquí irá cada intento de cobro.</b>
+                            <p>
+                                Hoy solo se guarda el estado final de la suscripción, no lo que
+                                respondió Redsys en cada pase. Sin eso el panel no puede decirte
+                                si fue un <code>0180</code> o un <code>0195</code>.
+                            </p>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+            </tbody>
+        </table>
     </div>
 @endsection
