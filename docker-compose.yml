@@ -12,11 +12,40 @@ services:
       # reinicios y no ensucie el repositorio.
       - lab-app:/app
     environment:
+      # Con qué dirección se ve la aplicación a sí misma. Es lo que viaja a
+      # Redsys como merchantUrl, así que con el túnel tiene que ser la pública.
+      APP_URL: "${APP_URL:-http://127.0.0.1:8000}"
       REDSYS_MERCHANT_CODE: "${REDSYS_MERCHANT_CODE:-}"
       REDSYS_TERMINAL: "${REDSYS_TERMINAL:-1}"
       REDSYS_SECRET_KEY: "${REDSYS_SECRET_KEY:-}"
       REDSYS_PRODUCTION: "${REDSYS_PRODUCTION:-false}"
       REDSYS_RETURN_URL: "${REDSYS_RETURN_URL:-/}"
+
+  # Solo para probar la notificación servidor-a-servidor, que es lo único que
+  # no se puede comprobar en local: Redsys no alcanza tu máquina.
+  #
+  #   NGROK_AUTHTOKEN=... NGROK_DOMAIN=tuyo.ngrok-free.app \
+  #     APP_URL=https://tuyo.ngrok-free.app \
+  #     docker compose --profile tunel up
+  #
+  # Con dominio fijo a propósito: si la dirección cambiara en cada arranque
+  # habría que volver a pegarla en el panel de Redsys cada vez.
+  tunel:
+    image: ngrok/ngrok:latest
+    profiles: ["tunel"]
+    environment:
+      # Sin `:?`: compose interpola todos los servicios aunque el perfil esté
+      # apagado, y eso rompería el `docker compose up` de quien no use túnel.
+      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:-}"
+      NGROK_DOMAIN: "${NGROK_DOMAIN:-}"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        [ -n "$$NGROK_AUTHTOKEN" ] || { echo "Falta NGROK_AUTHTOKEN: sácalo de dashboard.ngrok.com"; exit 1; }
+        [ -n "$$NGROK_DOMAIN" ] || echo "Sin NGROK_DOMAIN: la dirección cambiará en cada arranque y habrá que repegarla en Redsys."
+        exec ngrok http lab:8000 $${NGROK_DOMAIN:+--url=$$NGROK_DOMAIN} --log=stdout
+    depends_on:
+      - lab
 
 volumes:
   lab-app:

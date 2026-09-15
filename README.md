@@ -159,6 +159,33 @@ docker compose exec lab sh -c 'cd /package && vendor/bin/phpunit'
 > parámetros en las URLs» en SÍ**. Con la casilla en NO hace falta exponer la
 > aplicación, porque la referencia solo llega por la notificación.
 
+### Probar la notificación servidor-a-servidor
+
+Es lo único que no se puede comprobar en local: Redsys no alcanza tu máquina.
+El laboratorio trae un túnel opcional para eso.
+
+```bash
+NGROK_AUTHTOKEN=... NGROK_DOMAIN=lo-tuyo.ngrok-free.app   APP_URL=https://lo-tuyo.ngrok-free.app   docker compose --profile tunel up
+```
+
+Luego pega en tu panel de Redsys, como URL de notificación:
+
+```
+https://lo-tuyo.ngrok-free.app/redsys/subscriptions/notify
+```
+
+Tres cosas que cuestan una tarde si no se saben:
+
+- **`APP_URL` es obligatorio y tiene que ser el dominio público.** La URL de
+  notificación se construye con `route()`, así que si la aplicación se sigue
+  creyendo en `localhost` le manda *eso* a Redsys como `merchantUrl` y no llega
+  nada, con el túnel levantado y todo. El laboratorio avisa al arrancar.
+- **Usa un dominio fijo**, de los que da ngrok en el plan gratuito. Con una
+  dirección aleatoria hay que volver a pegarla en el panel de Redsys en cada
+  arranque.
+- El `docker compose up` normal **no necesita nada de esto**: el túnel va en un
+  perfil aparte y quien no lo use ni se entera.
+
 ## Panel
 
 El paquete trae un panel para operar en producción, en `/redsys-subscriptions`:
