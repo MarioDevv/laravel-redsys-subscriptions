@@ -21,6 +21,21 @@ use Illuminate\Http\Response;
  */
 class RedsysCallbacks
 {
+    /**
+     * El titular registra otra tarjeta sobre una suscripcion que ya existe.
+     *
+     * Se llega por un enlace firmado que caduca, porque quien abra esto puede
+     * dejar su tarjeta asociada a esta suscripcion. La ruta lleva middleware
+     * 'signed': una firma que no cuadra ni llega aqui.
+     *
+     * El id se resuelve a mano, como en back(): estas rutas van sin el grupo
+     * 'web', asi que no hay SubstituteBindings que lo haga por nosotros.
+     */
+    public function card(string $subscription): Response
+    {
+        return response(Subscription::findOrFail($subscription)->cardRegistrationForm());
+    }
+
     public function notify(Request $request): Response
     {
         $params = $this->verified($request);

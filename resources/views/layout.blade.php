@@ -263,7 +263,11 @@
     .kv { display: grid; grid-template-columns: 12rem 1fr; gap: .1rem 1rem; padding: .3rem 0; }
     .kv > dt { padding: .55rem 1.1rem; color: var(--muted); font-size: .87rem; }
     .kv > dd { padding: .55rem 1.1rem; margin: 0; color: var(--ink); overflow-wrap: anywhere; }
-    .copyable { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    /* Una URL firmada son 150 caracteres sin un solo espacio. Sin permitirle
+       partir, estira la columna y mete scroll horizontal en toda la página. */
+    .copyable { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; min-width: 0; }
+    .copyable code { overflow-wrap: anywhere; min-width: 0; font-size: .8rem;
+                     background: var(--line-soft); padding: .25rem .4rem; border-radius: 5px; }
     .kv > dd code { font-size: .84rem; background: var(--line-soft); padding: .1rem .35rem; border-radius: 4px; }
 
     @media (max-width: 66rem) { .kpis { grid-template-columns: repeat(2, 1fr); } }
@@ -367,6 +371,19 @@
         </div>
     </main>
 </div>
+<script>
+    // Estas direcciones se pegan en el panel de Redsys o se mandan al titular.
+    // Copiarlas a mano de una tabla es donde se cuelan los errores.
+    document.querySelectorAll('[data-copy]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            navigator.clipboard.writeText(button.dataset.copy).then(function () {
+                var before = button.textContent;
+                button.textContent = 'Copiada';
+                setTimeout(function () { button.textContent = before; }, 1500);
+            });
+        });
+    });
+</script>
 @stack('scripts')
 </body>
 </html>

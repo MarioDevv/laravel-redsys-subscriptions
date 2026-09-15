@@ -7,6 +7,7 @@ namespace MarioDevv\RedsysSubscriptions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\URL;
 
 /**
  * @property string $status
@@ -111,15 +112,21 @@ class Subscription extends Model
      */
     public function completeCheckout(array $params): void
     {
+        $order = $params['DS_ORDER'] ?? $this->checkout_order;
+
         // Un alta denegada no cancela nada: sigue incomplete y el titular puede
         // reintentar. Sin referencia de tarjeta tampoco se activa, o quedaria
-        // activa sin poder cobrar e invisible para el scope due(). Y si ya esta
-        // activa, no se toca: la notificacion y la vuelta del navegador pueden
-        // llegar las dos, y la segunda no debe mover la fecha de cobro.
+        // activa sin poder cobrar e invisible para el scope due().
+        //
+        // Y un pedido ya procesado no se repite: la notificacion y la vuelta
+        // del navegador pueden llegar las dos, y la segunda no debe mover la
+        // fecha de cobro. Se mira el pedido y no si esta activa, porque una
+        // suscripcion viva tiene que poder registrar otra tarjeta: es lo que
+        // hace falta cuando Redsys mata la referencia con SIS0321.
         if (
             ChargeOutcome::fromRedsys($params['DS_RESPONSE'] ?? null) !== ChargeOutcome::Authorized
             || empty($params['DS_MERCHANT_IDENTIFIER'])
-            || $this->active()
+            || $this->charges()->where('order', $order)->exists()
         ) {
             return;
         }
@@ -132,11 +139,7 @@ class Subscription extends Model
         ]);
 
         // El alta tambien es un cobro, y es la primera linea del historial.
-        $this->recordCharge(
-            ChargeOutcome::Authorized,
-            $params['DS_ORDER'] ?? $this->checkout_order,
-            $params['DS_RESPONSE'] ?? null,
-        );
+        $this->recordCharge(ChargeOutcome::Authorized, $order, $params['DS_RESPONSE'] ?? null);
     }
 
     /**
@@ -213,6 +216,22 @@ class Subscription extends Model
         $billable = $this->billable;
 
         return $billable?->name ?? $billable?->email ?? $fallback;
+    }
+
+    /**
+     * Enlace para que el titular registre otra tarjeta sobre esta misma
+     * suscripcion, conservando su numero y su historial.
+     *
+     * Va firmado y caduca: sin firma seria una direccion que deja a cualquiera
+     * meter una tarjeta en la suscripcion de otro.
+     */
+    public function cardUpdateLink(int $days = 7): string
+    {
+        return URL::temporarySignedRoute(
+            'redsys.subscriptions.card',
+            now()->addDays($days),
+            $this,
+        );
     }
 
     /** Pedido nuevo. Redsys los quiere de 12 caracteres como mucho, los 4

@@ -29,6 +29,12 @@ class RedsysSubscriptionsServiceProvider extends ServiceProvider
         Route::post('redsys/subscriptions/notify', [RedsysCallbacks::class, 'notify'])
             ->name('redsys.subscriptions.notify');
 
+        // Registrar otra tarjeta sobre una suscripcion que ya existe. Detras de
+        // 'signed' porque quien abra el enlace deja su tarjeta asociada a ella.
+        Route::get('redsys/subscriptions/card/{subscription}', [RedsysCallbacks::class, 'card'])
+            ->middleware('signed')
+            ->name('redsys.subscriptions.card');
+
         // GET y POST: con 'Enviar parametros en las URLs' en NO, Redsys devuelve
         // al titular con un GET pelado, sin parametros que postear.
         Route::match(['get', 'post'], 'redsys/subscriptions/return/{subscription}', [RedsysCallbacks::class, 'back'])

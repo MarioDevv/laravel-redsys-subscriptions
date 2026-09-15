@@ -122,13 +122,19 @@
                     </div>
                 @endif
 
-                <p class="msg" style="margin: 0 1.1rem 1.1rem">
-                    <span>
-                        <b>Pedir una tarjeta nueva todavía no se puede.</b>
-                        Tras un <code>SIS0321</code> o un <code>0195</code> no hay forma de poner
-                        otra tarjeta sobre esta misma suscripción. Está en la hoja de ruta.
-                    </span>
-                </p>
+                {{-- El operador no puede pasar el 3DS por el titular, así que
+                     lo que se le da es el enlace para que lo haga él. --}}
+                <div class="msg" style="margin: 0 1.1rem 1.1rem; display: block">
+                    <b>Enlace para cambiar la tarjeta</b>
+                    <p class="muted" style="margin: .2rem 0 .5rem; font-size: .85rem">
+                        Mándaselo al titular. Caduca en 7 días y conserva esta suscripción
+                        con su número y su historial.
+                    </p>
+                    <div class="copyable">
+                        <code>{{ $cardLink }}</code>
+                        <button type="button" class="quiet" data-copy="{{ $cardLink }}">Copiar</button>
+                    </div>
+                </div>
             </div>
 
             <div class="card">

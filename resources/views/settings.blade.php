@@ -62,19 +62,3 @@ Gate::define(Authorize::GATE, fn ($user) =&gt; $user-&gt;isAdmin());</pre>
         @endunless
     </div>
 @endsection
-
-@push('scripts')
-<script>
-    // La URL de notificación hay que pegarla en el panel de Redsys. Copiarla a
-    // mano de una tabla es donde se cuelan los errores.
-    document.querySelectorAll('[data-copy]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            navigator.clipboard.writeText(button.dataset.copy).then(function () {
-                var before = button.textContent;
-                button.textContent = 'Copiada';
-                setTimeout(function () { button.textContent = before; }, 1500);
-            });
-        });
-    });
-</script>
-@endpush

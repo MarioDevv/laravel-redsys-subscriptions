@@ -85,6 +85,7 @@ class SubscriptionsPanel
             'stats'        => $this->stats(),
             'subscription' => $subscription,
             'charges'      => $subscription->charges()->limit(25)->get(),
+            'cardLink'     => $subscription->cardUpdateLink(),
         ]);
     }
 

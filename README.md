@@ -197,6 +197,25 @@ El importe se congela en la fila: si mañana subes el precio, lo que se cobró
 aquel día no cambia. Y el alta de tarjeta es la primera línea del historial,
 porque también fue un cobro.
 
+## Cambiar la tarjeta
+
+Cuando Redsys mata la referencia con `SIS0321`, o el emisor pide autenticación
+con `0195`, el titular tiene que registrar otra tarjeta. **La suscripción no se
+rehace**: conserva su número, su importe y su historial.
+
+```php
+$link = $subscription->cardUpdateLink();   // firmado, caduca en 7 días
+$link = $subscription->cardUpdateLink(30); // o los días que quieras
+```
+
+Mándaselo al titular, o cópialo desde la ficha del panel. Abrirlo le lleva al
+formulario de Redsys; cuando vuelve, la suscripción queda activa con la tarjeta
+nueva.
+
+El enlace va **firmado y con caducidad** a propósito: quien lo abra deja su
+tarjeta asociada a esa suscripción, así que una dirección adivinable sería una
+forma de pagar con la cuenta de otro.
+
 ## Bajas
 
 ```php
@@ -267,11 +286,9 @@ El 3DS real y la notificación servidor-a-servidor todavía no han tocado Redsys
 
 ### Antes de la 1.0
 
-1. **Actualizar la tarjeta.** Tras un `SIS0321` o un `0195` no hay forma de poner
-   una tarjeta nueva sobre la misma suscripción.
-2. **Eventos.** La aplicación no puede enterarse de que un cobro ha fallado para
+1. **Eventos.** La aplicación no puede enterarse de que un cobro ha fallado para
    avisar al cliente.
-3. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
+2. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
    13 trae la 8, así que `composer require` falla si no se fuerza con `-W`.
 
 ### Puede que nunca
