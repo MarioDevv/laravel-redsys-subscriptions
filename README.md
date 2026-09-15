@@ -10,6 +10,35 @@ pendientes— lo pone este paquete.
 > servidor-a-servidor verificados contra el entorno de pruebas de Redsys. Sin
 > probar en producción, y la API pública puede cambiar antes de la 1.0.
 
+```php
+$subscription = $user->newSubscription(amountInCents: 1500, interval: 'monthly');
+
+return response($subscription->cardRegistrationForm());   // el titular pasa el 3DS una vez
+// y a partir de ahí se cobra solo
+```
+
+**Qué pone el paquete:** la máquina de estados, los reintentos con espera, el
+historial de cada intento, el cambio de tarjeta, un panel para operar y la
+clasificación de los códigos de error de Redsys —que es donde se rompe la
+facturación cuando se hace a ojo.
+
+**Qué no:** [cupones, prorrateo, periodos de prueba, facturas, multidivisa…](#puede-que-nunca)
+
+---
+
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [El alta de tarjeta](#el-alta-de-tarjeta)
+- [Ver el paquete funcionando](#ver-el-paquete-funcionando)
+- [Panel](#panel)
+- [Historial de cobros](#historial-de-cobros)
+- [Enterarte de lo que pasa](#enterarte-de-lo-que-pasa)
+- [Cambiar la tarjeta](#cambiar-la-tarjeta)
+- [Bajas](#bajas)
+- [Estados](#estados) — **empieza por aquí si vienes de otro TPV**
+- [Firma SHA-512](#firma-sha-512)
+- [Estado y hoja de ruta](#estado-y-hoja-de-ruta)
+
 ## Instalación
 
 ```bash
@@ -29,7 +58,7 @@ REDSYS_PRODUCTION=false
 
 El paquete no trae credenciales por defecto: sin `REDSYS_SECRET_KEY` no firma.
 Las tuyas las da tu banco. Para probar sin comercio propio, las del entorno de
-pruebas estan publicadas en la documentacion de Redsys.
+pruebas están publicadas en la documentación de Redsys.
 
 ```bash
 php artisan vendor:publish --tag=redsys-subscriptions-config
@@ -326,7 +355,7 @@ forma de pagar con la cuenta de otro.
 $subscription->cancel();      // al final del periodo ya pagado
 $subscription->cancelNow();   // de inmediato
 
-$subscription->onGracePeriod(); // dada de baja, pero aun le queda periodo
+$subscription->onGracePeriod(); // dada de baja, pero aún le queda periodo
 $subscription->valid();         // activa, o en ese periodo de gracia
 $user->subscribed();            // lo mismo, desde el titular
 ```
