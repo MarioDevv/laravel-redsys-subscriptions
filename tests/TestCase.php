@@ -31,5 +31,11 @@ abstract class TestCase extends Orchestra
             'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '',
             'foreign_key_constraints' => true,
         ]);
+
+        // El driver por defecto de testbench es 'database', que para los locks
+        // del comando de cobro pide la tabla cache_locks de Laravel. Aqui no
+        // hace falta: array da locks atomicos dentro del proceso, que es lo
+        // que prueban estos tests.
+        $app['config']->set('cache.default', 'array');
     }
 }

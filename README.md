@@ -102,6 +102,11 @@ Programa el comando en `routes/console.php`:
 Schedule::command('redsys:charge-subscriptions')->dailyAt('03:00');
 ```
 
+**No hace falta `withoutOverlapping()`.** El comando coge un lock él solo, así
+que dos pases que se pisen no cobran dos veces al mismo cliente: el segundo se
+salta y lo dice. Usa los locks atómicos de Laravel, así que **si tu caché es
+`database`, necesitas la tabla `cache_locks`** — la que trae Laravel de serie.
+
 ## Ver el paquete funcionando
 
 El repositorio trae un laboratorio en `docker/`, que **no forma parte del

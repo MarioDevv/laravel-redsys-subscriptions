@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MarioDevv\RedsysSubscriptions;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class ChargeDueSubscriptions extends Command
 {
@@ -12,7 +13,34 @@ class ChargeDueSubscriptions extends Command
 
     protected $description = 'Cobra las suscripciones Redsys vencidas';
 
+    /** Nadie deberia tardar tanto, pero si el proceso muere el lock caduca solo. */
+    private const LOCK_SECONDS = 600;
+
     public function handle(RedsysGateway $gateway): int
+    {
+        // El lock vive aqui dentro y no en quien programa el comando. Laravel
+        // ofrece withoutOverlapping() y --isolated, pero los dos dependen de
+        // que el que escribe el cron se acuerde; olvidarse cuesta cobrar dos
+        // veces al mismo cliente.
+        //
+        // ponytail: un lock para todo el pase. Si algun dia hace falta cobrar
+        // en paralelo, uno por suscripcion.
+        $lock = Cache::lock('redsys-subscriptions:charging', self::LOCK_SECONDS);
+
+        if (! $lock->get()) {
+            $this->warn('Ya hay un pase de cobro en marcha. Este se salta.');
+
+            return self::SUCCESS;
+        }
+
+        try {
+            return $this->chargeDue($gateway);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function chargeDue(RedsysGateway $gateway): int
     {
         $due = Subscription::query()->due()->get();
 
