@@ -18,8 +18,9 @@ namespace MarioDevv\RedsysSubscriptions;
  *   - Una tarjeta caducada esta tan muerta como una referencia borrada, aunque
  *     Redsys use otro codigo. Reintentarla nueve dias es regalar servicio.
  *
- * Verificado contra el sandbox el 14/09/2026 para 0000-0099, 0195 y SIS0321.
- * El resto sale de la tabla de codigos de Redsys, pendiente de sandbox.
+ * Contra el sandbox de verdad estan comprobados 0000-0099, 0195 y SIS0321
+ * (14/09/2026) y SIS0042 (17/09/2026, con docker/demo/verify-redsys.php).
+ * El resto sale de la tabla de codigos de Redsys y no se ha podido forzar.
  */
 enum ChargeOutcome: string
 {

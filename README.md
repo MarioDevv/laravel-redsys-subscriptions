@@ -138,6 +138,17 @@ defecto.
 docker compose down -v   # tirar la aplicación y empezar de cero
 ```
 
+Y contra el Redsys de verdad, para comprobar que la tabla de errores dice lo que
+Redsys dice y no lo que creemos:
+
+```bash
+docker compose exec lab php /demo/verify-redsys.php
+```
+
+Prueba lo que se puede forzar sin un titular delante: la firma incorrecta y la
+referencia muerta. Lo que necesita 3DS se comprueba a mano dando de alta una
+tarjeta en el laboratorio.
+
 Los tests también corren ahí, que es lo cómodo si tu PHP no trae `pdo_sqlite`:
 
 ```bash
