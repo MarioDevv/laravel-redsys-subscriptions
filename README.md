@@ -197,6 +197,35 @@ El importe se congela en la fila: si mañana subes el precio, lo que se cobró
 aquel día no cambia. Y el alta de tarjeta es la primera línea del historial,
 porque también fue un cobro.
 
+## Enterarte de lo que pasa
+
+Cada intento de cobro dispara un evento. Es lo único que tu aplicación no sabe
+por su cuenta: cuando llama a `cancel()` ya se ha enterado, pero lo que hizo el
+cron a las tres de la mañana no lo ve nadie.
+
+```php
+use MarioDevv\RedsysSubscriptions\ChargeOutcome;
+use MarioDevv\RedsysSubscriptions\Events\SubscriptionCharged;
+
+Event::listen(function (SubscriptionCharged $event) {
+    $titular = $event->subscription->billable;
+
+    match ($event->charge->outcome) {
+        ChargeOutcome::Declined    => $titular->notify(new CobroFallido($event->charge)),
+        ChargeOutcome::ScaRequired => $titular->notify(new AutenticaTuPago($event->subscription)),
+        ChargeOutcome::TokenDead   => $titular->notify(new CambiaLaTarjeta($event->subscription->cardUpdateLink())),
+        ChargeOutcome::Authorized  => $titular->notify(new Recibo($event->charge)),
+    };
+});
+```
+
+El estado ya está aplicado cuando llega el evento, así que
+`$event->subscription->status` te dice si además se ha quedado cancelada. El
+alta de tarjeta también lo dispara, porque también fue un cobro.
+
+Es **un** evento y no seis a propósito: los seis te obligarían a registrar seis
+listeners para hacer un `match` que cabe en uno.
+
 ## Cambiar la tarjeta
 
 Cuando Redsys mata la referencia con `SIS0321`, o el emisor pide autenticación
@@ -286,9 +315,7 @@ El 3DS real y la notificación servidor-a-servidor todavía no han tocado Redsys
 
 ### Antes de la 1.0
 
-1. **Eventos.** La aplicación no puede enterarse de que un cobro ha fallado para
-   avisar al cliente.
-2. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
+1. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
    13 trae la 8, así que `composer require` falla si no se fuerza con `-W`.
 
 ### Puede que nunca

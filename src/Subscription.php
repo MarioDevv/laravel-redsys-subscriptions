@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Facades\URL;
+use MarioDevv\RedsysSubscriptions\Events\SubscriptionCharged;
 
 /**
  * @property string $status
@@ -287,13 +288,17 @@ class Subscription extends Model
 
         $this->save();
 
-        $this->charges()->create([
+        $charge = $this->charges()->create([
             'order'           => $order,
             'outcome'         => $outcome,
             'response_code'   => $responseCode,
             'amount_in_cents' => $this->amount_in_cents,
             'created_at'      => now(),
         ]);
+
+        // Se dispara con el estado ya aplicado: quien escuche puede mirar
+        // $subscription->status y saber si ademas se ha quedado cancelada.
+        event(new SubscriptionCharged($this, $charge));
     }
 
     public function nextChargeDate(): \DateTimeInterface
