@@ -6,6 +6,7 @@ namespace MarioDevv\RedsysSubscriptions;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -33,6 +34,9 @@ class SubscriptionsPanel
                 ->latest('updated_at')
                 ->limit(6)
                 ->get(),
+            // Hoja de ruta: sin tabla de intentos esto llega vacio. La vista ya
+            // dibuja la tabla, asi que cuando exista solo cambia esta linea.
+            'charges'   => collect(),
         ]);
     }
 
@@ -70,6 +74,35 @@ class SubscriptionsPanel
             'sort'          => $sort,
             'descending'    => $descending,
         ]);
+    }
+
+    /**
+     * La ficha de una suscripcion: todo lo que se sabe de ella en una pantalla.
+     * Es donde el soporte mira cuando alguien llama, y donde caben el historial
+     * de cobros y el cambio de tarjeta cuando existan.
+     */
+    public function show(Subscription $subscription)
+    {
+        return view('redsys-subscriptions::show', [
+            'stats'        => $this->stats(),
+            'subscription' => $subscription,
+            // Hoja de ruta: todavia no se guarda cada intento, asi que la tabla
+            // llega vacia. La vista ya sabe dibujarla cuando haya filas.
+            'charges'      => collect(),
+        ]);
+    }
+
+    /**
+     * Lanza el pase del comando a mano, sin esperar al cron.
+     *
+     * ponytail: sincrono, dentro de la peticion. Con pocas suscripciones
+     * vencidas se nota poco; si el pase empieza a tardar, a una cola.
+     */
+    public function run(): RedirectResponse
+    {
+        Artisan::call('redsys:charge-subscriptions');
+
+        return back()->with('redsys_message', trim(Artisan::output()));
     }
 
     /** Que configuracion esta cogiendo el paquete ahora mismo. */

@@ -60,6 +60,12 @@ class Subscription extends Model
         return self::statusLabels()[$this->status] ?? $this->status;
     }
 
+    /** El importe como se enseña y como se dice por telefono: «19,00 €». */
+    public function amountLabel(): string
+    {
+        return number_format($this->amount_in_cents / 100, 2, ',', '.') . ' €';
+    }
+
     public function active(): bool
     {
         return $this->status === self::ACTIVE;

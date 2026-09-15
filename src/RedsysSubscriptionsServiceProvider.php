@@ -42,6 +42,10 @@ class RedsysSubscriptionsServiceProvider extends ServiceProvider
                 Route::get('/', [SubscriptionsPanel::class, 'overview'])->name('index');
                 Route::get('suscripciones', [SubscriptionsPanel::class, 'index'])->name('list');
                 Route::get('ajustes', [SubscriptionsPanel::class, 'settings'])->name('settings');
+                // Cuelga de 'suscripciones/' a proposito: en la raiz del panel,
+                // un {subscription} comodin se tragaria 'ajustes'.
+                Route::get('suscripciones/{subscription}', [SubscriptionsPanel::class, 'show'])->name('show');
+                Route::post('cobrar', [SubscriptionsPanel::class, 'run'])->name('run');
                 Route::post('{subscription}/cancel', [SubscriptionsPanel::class, 'cancel'])->name('cancel');
                 Route::post('{subscription}/charge', [SubscriptionsPanel::class, 'charge'])->name('charge');
             });
