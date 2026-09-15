@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use MarioDevv\RedsysSubscriptions\Authorize;
 use MarioDevv\RedsysSubscriptions\ChargeOutcome;
@@ -16,6 +17,15 @@ use MarioDevv\RedsysSubscriptions\Subscription;
  * Demo del paquete. No forma parte de él: vive en docker/demo/ y solo la ve
  * quien clona el repositorio y levanta el laboratorio.
  */
+
+// Detrás de un túnel, quien termina el TLS es el túnel: a Laravel le llega la
+// petición en claro y con el host interno. Sin esto, route() construye la URL
+// de notificación con http:// y Redsys la rechaza con un 307, porque no sigue
+// redirecciones. En una aplicación de verdad esto lo resuelve TrustProxies.
+if (str_starts_with((string) config('app.url'), 'https://')) {
+    URL::forceRootUrl((string) config('app.url'));
+    URL::forceScheme('https');
+}
 
 // El panel viene cerrado salvo que lo abra un Gate. Aquí se abre porque esto es
 // el taller; en una aplicación de verdad lo decide su dueño.
