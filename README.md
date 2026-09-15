@@ -4,7 +4,7 @@
 [![Descargas](https://img.shields.io/packagist/dt/mariodevv/laravel-redsys-subscriptions.svg)](https://packagist.org/packages/mariodevv/laravel-redsys-subscriptions)
 [![PHP](https://img.shields.io/packagist/dependency-v/mariodevv/laravel-redsys-subscriptions/php.svg)](composer.json)
 [![Licencia](https://img.shields.io/packagist/l/mariodevv/laravel-redsys-subscriptions.svg)](LICENSE)
-[![Tests](https://github.com/MarioDevv/laravel-redsys-subscriptions/actions/workflows/tests.yml/badge.svg)](https://github.com/MarioDevv/laravel-redsys-subscriptions/actions/workflows/tests.yml)
+[![Tests](https://github.com/MarioDevv/laravel-redsys-subscriptions/actions/workflows/workflow.yaml/badge.svg)](https://github.com/MarioDevv/laravel-redsys-subscriptions/actions/workflows/workflow.yaml)
 
 Suscripciones y cobros recurrentes con **Redsys** para Laravel.
 

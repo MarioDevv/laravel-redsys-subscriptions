@@ -8,6 +8,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Los reales tardan medio minuto. Sin limite, uno colgado quema seis horas.
+    timeout-minutes: 10
 
     # Cada Laravel contra su PHP minimo y contra el mas nuevo: ahi es donde
     # aparecen las incompatibilidades. Laravel 12 admite PHP 8.2, la 13 pide
@@ -34,6 +36,12 @@ jobs:
           extensions: pdo_sqlite, sqlite3
           coverage: none
 
+      # Antes de tocar nada: los pasos siguientes reescriben el composer.json
+      # para fijar la version de Laravel, asi que validarlo despues seria
+      # comprobar un fichero que no es el que se publica.
+      - name: Comprobar que el composer.json es publicable
+        run: composer validate --strict --no-check-lock
+
       - name: Instalar dependencias
         run: |
           composer require --dev --no-interaction --no-update \
@@ -43,9 +51,6 @@ jobs:
             "illuminate/database:${{ matrix.laravel }}" \
             "illuminate/support:${{ matrix.laravel }}"
           composer update --prefer-dist --no-interaction
-
-      - name: Comprobar que el composer.json es publicable
-        run: composer validate --strict --no-check-lock
 
       - name: Tests
         run: vendor/bin/phpunit
