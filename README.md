@@ -6,8 +6,9 @@ Redsys no aloja suscripciones: solo guarda una referencia de tarjeta. El ciclo d
 facturación —renovaciones, reintentos, tarjetas caducadas, autenticaciones
 pendientes— lo pone este paquete.
 
-> **Estado: alfa.** El núcleo está probado contra el entorno real de Redsys, pero
-> la API pública puede cambiar antes de la 1.0.
+> **Estado: beta.** Alta con 3DS, cobro recurrente y notificación
+> servidor-a-servidor verificados contra el entorno de pruebas de Redsys. Sin
+> probar en producción, y la API pública puede cambiar antes de la 1.0.
 
 ## Instalación
 
@@ -105,6 +106,31 @@ Programa el comando en `routes/console.php`:
 Schedule::command('redsys:charge-subscriptions')->dailyAt('03:00');
 ```
 
+### Si tu aplicación va detrás de un proxy
+
+**Configura `TrustProxies`, o las altas no se activarán nunca.**
+
+La URL de notificación no se configura: el paquete la construye con `route()`, y
+Laravel construye URLs absolutas con el esquema y el host de **la petición**. Si
+quien termina el TLS es un proxy, un balanceador o un CDN, a Laravel le llega la
+petición en claro y manda a Redsys una `merchantUrl` con `http://`.
+
+Redsys **no sigue redirecciones**: recibe el 307 de tu proxy hacia HTTPS, lo da
+por fallido, y la notificación no llega. Tu aplicación no registra ningún error,
+porque desde su lado no ha pasado nada. Las suscripciones se quedan en
+`incomplete` para siempre.
+
+En `bootstrap/app.php`:
+
+```php
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->trustProxies(at: '*');   // o la lista de IPs de tu proxy
+})
+```
+
+Comprueba que lo tienes bien mirando qué sale en Ajustes como «Notificación de
+Redsys»: si empieza por `http://` y tu sitio es HTTPS, esto te va a morder.
+
 **No hace falta `withoutOverlapping()`.** El comando coge un lock él solo, así
 que dos pases que se pisen no cobran dos veces al mismo cliente: el segundo se
 salta y lo dice. Usa los locks atómicos de Laravel, así que **si tu caché es
@@ -148,6 +174,12 @@ docker compose exec lab php /demo/verify-redsys.php
 Prueba lo que se puede forzar sin un titular delante: la firma incorrecta y la
 referencia muerta. Lo que necesita 3DS se comprueba a mano dando de alta una
 tarjeta en el laboratorio.
+
+**Para probar la notificación, entra al laboratorio por la URL del túnel, no por
+`127.0.0.1`.** La `merchantUrl` que viaja a Redsys se construye con el host de la
+petición: si entras por localhost, Redsys recibe `http://127.0.0.1:8000/...` y no
+puede llamarte. Es el mismo motivo por el que en producción hace falta
+`TrustProxies`.
 
 Los tests también corren ahí, que es lo cómodo si tu PHP no trae `pdo_sqlite`:
 
@@ -362,19 +394,28 @@ Lo que hay probado, y contra qué:
 | | Contra el sandbox de Redsys | Solo con tests |
 |---|---|---|
 | Alta de tarjeta COF, **3DS incluido** | sí, entera | |
+| **Notificación servidor-a-servidor** | sí | |
 | Cobro MIT con la referencia guardada | sí | |
+| Mensual, semanal y anual | sí, las tres | |
 | `0000`, `SIS0321`, `SIS0042`, `SIS0051` | sí | |
-| `0195` y el resto de códigos | | sí |
+| 3DS denegado y pago cancelado | sí | |
+| `0195` | | sí |
+| El resto del catálogo de códigos | | sí |
 | Verificación de firma, SHA-256 y SHA-512 | | sí |
-| «Enviar parámetros en las URLs» en NO | | sí |
-| Notificación servidor-a-servidor | **no** | sí |
 
-El alta pasa el 3DS de verdad y el cobro recurrente sale autorizado sin volver a
-pedir autenticación, que es lo que tenía que demostrar la exención MIT.
+El alta pasa el 3DS de verdad, la notificación llega y activa la suscripción
+**sin que el titular vuelva del navegador**, y el cobro recurrente sale
+autorizado sin volver a pedir autenticación, que es lo que tenía que demostrar
+la exención MIT.
 
-**Lo que sigue sin tocar Redsys es la notificación servidor-a-servidor**, porque
-Redsys no puede alcanzar `localhost`. En el laboratorio el alta se completa por
-la vuelta del navegador.
+Un 3DS denegado o un pago cancelado dejan la suscripción en `incomplete` sin
+inventarse una línea en el historial. La cancelación también llega por
+notificación y el paquete la ignora, que es lo que evita activar suscripciones
+que nadie ha pagado.
+
+**Lo que no está probado:** producción, el `0195`, y los ~30 códigos de respuesta
+y 683 `SISxxxx` restantes del catálogo. La mayoría no se pueden provocar desde
+fuera, así que su clasificación es criterio razonado y no observación.
 
 ### Antes de la 1.0
 
