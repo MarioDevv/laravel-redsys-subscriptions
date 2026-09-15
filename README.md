@@ -451,11 +451,34 @@ que nadie ha pagado.
 y 683 `SISxxxx` restantes del catálogo. La mayoría no se pueden provocar desde
 fuera, así que su clasificación es criterio razonado y no observación.
 
-### Antes de la 1.0
+### Para la 1.0
 
-Lo que queda no es una lista de funciones: es **probar contra Redsys de verdad**
-el 3DS y la notificación servidor-a-servidor. Hasta entonces esto sigue siendo
-alfa por mucho que la tabla de arriba esté casi entera.
+Dos cosas, y ninguna es una función nueva:
+
+1. **Un cobro en producción.** Todo lo verificado lo está contra el sandbox.
+   Cambia el endpoint y la clave, nada más, pero nadie lo ha ejecutado con
+   dinero de verdad. Es lo único que separa esto de la 1.0.
+2. **Forzar un `0195`.** Se vio en el sandbox en septiembre y no se ha podido
+   reproducir. Es el caso del que más presume el paquete —no reintentar, no
+   cancelar— y hoy descansa en una observación y en tests.
+
+### Mejoras conocidas
+
+Ninguna bloquea la 1.0, todas salieron de usar el paquete de verdad:
+
+- **Sin integración continua.** Los 88 tests solo corren si alguien los lanza.
+  Para un paquete publicado, eso es un hueco.
+- **`past_due_sca` corta el acceso.** `valid()` mira `active()` o periodo de
+  gracia, así que un titular al que el banco le pide autenticar pierde el
+  servicio aunque su tarjeta siga viva y vaya a cobrar el mes que viene.
+  Decisión de producto, no bug.
+- **Un alta denegada no deja rastro.** `completeCheckout()` sale sin registrar
+  nada, así que soporte no puede ver que alguien lo intentó tres veces.
+- **«Lanzar cobro ahora» es síncrono** dentro de la petición HTTP. Con muchas
+  vencidas hay que mandarlo a una cola.
+- **Avisos de configuración en Ajustes:** URL de notificación inalcanzable,
+  entorno real sin clave, o el envío del número enmascarado desactivado —que es
+  lo que deja la búsqueda por los cuatro dígitos sin funcionar y en silencio.
 
 ### Puede que nunca
 
