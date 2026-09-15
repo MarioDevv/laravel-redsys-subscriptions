@@ -16,6 +16,9 @@ composer require mariodevv/laravel-redsys-subscriptions
 php artisan migrate
 ```
 
+Laravel 11, 12 y 13. En la 13 no hace falta forzar nada: `creagia/redsys-php`
+pide `guzzle ^7`, la 13 acepta `^7.8.2 || ^8.0`, y composer resuelve la 7.15.
+
 ```dotenv
 REDSYS_MERCHANT_CODE=
 REDSYS_TERMINAL=1
@@ -315,8 +318,9 @@ El 3DS real y la notificación servidor-a-servidor todavía no han tocado Redsys
 
 ### Antes de la 1.0
 
-1. **Instalación en Laravel 13.** `creagia/redsys-php` pide `guzzle ^7` y Laravel
-   13 trae la 8, así que `composer require` falla si no se fuerza con `-W`.
+Lo que queda no es una lista de funciones: es **probar contra Redsys de verdad**
+el 3DS y la notificación servidor-a-servidor. Hasta entonces esto sigue siendo
+alfa por mucho que la tabla de arriba esté casi entera.
 
 ### Puede que nunca
 

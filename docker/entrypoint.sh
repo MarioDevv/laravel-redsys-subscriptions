@@ -12,7 +12,7 @@ if [ ! -f /app/artisan ]; then
     # Repositorio de tipo path: composer enlaza /package, así que lo que toques
     # en el repositorio se ve aquí sin reinstalar nada.
     composer config repositories.paquete path /package
-    composer require "mariodevv/laravel-redsys-subscriptions:*@dev" -W --no-interaction
+    composer require "mariodevv/laravel-redsys-subscriptions:*@dev" --no-interaction
 
     cp /demo/User.php app/Models/User.php
     cp /demo/routes.php routes/web.php
