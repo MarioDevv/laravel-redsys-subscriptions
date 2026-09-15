@@ -34,9 +34,7 @@ class SubscriptionsPanel
                 ->latest('updated_at')
                 ->limit(6)
                 ->get(),
-            // Hoja de ruta: sin tabla de intentos esto llega vacio. La vista ya
-            // dibuja la tabla, asi que cuando exista solo cambia esta linea.
-            'charges'   => collect(),
+            'charges'   => Charge::query()->with('subscription')->latest('created_at')->latest('id')->limit(8)->get(),
         ]);
     }
 
@@ -86,9 +84,7 @@ class SubscriptionsPanel
         return view('redsys-subscriptions::show', [
             'stats'        => $this->stats(),
             'subscription' => $subscription,
-            // Hoja de ruta: todavia no se guarda cada intento, asi que la tabla
-            // llega vacia. La vista ya sabe dibujarla cuando haya filas.
-            'charges'      => collect(),
+            'charges'      => $subscription->charges()->limit(25)->get(),
         ]);
     }
 
@@ -141,10 +137,10 @@ class SubscriptionsPanel
             return back()->with('redsys_message', "{$subscription->billableName()} no tiene tarjeta guardada.");
         }
 
-        $outcome = $gateway->chargeStoredCard($subscription, $subscription->newOrder());
-        $subscription->recordCharge($outcome);
+        $result = $gateway->chargeStoredCard($subscription, $order = $subscription->newOrder());
+        $subscription->recordCharge($result->outcome, $order, $result->code);
 
-        return back()->with('redsys_message', match ($outcome) {
+        return back()->with('redsys_message', match ($result->outcome) {
             ChargeOutcome::Authorized  => "Cobro hecho. {$subscription->billableName()} vuelve a estar al día.",
             ChargeOutcome::ScaRequired => "El banco pide que {$subscription->billableName()} autentique el pago.",
             ChargeOutcome::TokenDead   => "La tarjeta de {$subscription->billableName()} ya no vale. Hay que pedir una nueva.",

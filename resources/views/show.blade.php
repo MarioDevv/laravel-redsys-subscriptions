@@ -48,7 +48,7 @@
         <div class="card">
             <div class="cap">
                 <h2>Historial de cobros</h2>
-                <span class="pill soon">Hoja de ruta · falta la tabla de intentos</span>
+                <span class="muted">{{ $charges->count() }} {{ $charges->count() === 1 ? 'intento' : 'intentos' }}</span>
             </div>
 
             <table>
@@ -68,18 +68,15 @@
                     <tr>
                         <td class="digits">{{ $charge->created_at->format('j/n H:i') }}</td>
                         <td class="hide-narrow digits">{{ $charge->order }}</td>
-                        <td class="why {{ $charge->status }}">{{ $charge->responseLabel() }}</td>
+                        <td class="why {{ $charge->tone() }}">{{ $charge->responseLabel() }}</td>
                         <td class="num amount">{{ $charge->amountLabel() }}</td>
                     </tr>
                 @empty
                     <tr>
                         <td colspan="4">
                             <div class="empty">
-                                <b>Aquí irá cada intento de cobro.</b>
-                                <p>
-                                    Hoy el paquete solo guarda el estado final y el contador de
-                                    fallos, no lo que respondió Redsys en cada pase.
-                                </p>
+                                <b>Todavía no se le ha cobrado nada.</b>
+                                <p>Aparecerá en cuanto pase el primer cobro.</p>
                             </div>
                         </td>
                     </tr>

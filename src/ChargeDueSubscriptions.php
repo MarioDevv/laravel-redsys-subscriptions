@@ -29,10 +29,10 @@ class ChargeDueSubscriptions extends Command
             }
 
             // Cada intento necesita su propio pedido, reintentos incluidos.
-            $outcome = $gateway->chargeStoredCard($subscription, $subscription->newOrder());
-            $subscription->recordCharge($outcome);
+            $result = $gateway->chargeStoredCard($subscription, $order = $subscription->newOrder());
+            $subscription->recordCharge($result->outcome, $order, $result->code);
 
-            $this->line("#{$subscription->id} · {$outcome->value} → {$subscription->status}");
+            $this->line("#{$subscription->id} · {$result->outcome->value} → {$subscription->status}");
         }
 
         return self::SUCCESS;

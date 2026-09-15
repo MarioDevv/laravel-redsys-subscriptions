@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MarioDevv\RedsysSubscriptions;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
@@ -36,6 +37,12 @@ class Subscription extends Model
     public function billable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /** Cada intento de cobro, el mas reciente primero. */
+    public function charges(): HasMany
+    {
+        return $this->hasMany(Charge::class, 'subscription_id')->latest('created_at')->latest('id');
     }
 
     /**
@@ -117,7 +124,12 @@ class Subscription extends Model
             'card_expiry'        => $params['DS_EXPIRYDATE'] ?? null,
         ]);
 
-        $this->recordCharge(ChargeOutcome::Authorized);
+        // El alta tambien es un cobro, y es la primera linea del historial.
+        $this->recordCharge(
+            ChargeOutcome::Authorized,
+            $params['DS_ORDER'] ?? $this->checkout_order,
+            $params['DS_RESPONSE'] ?? null,
+        );
     }
 
     /**
@@ -205,8 +217,15 @@ class Subscription extends Model
 
     /**
      * Aplica el resultado de un cobro. Aqui vive toda la logica de estados.
+     *
+     * Deja ademas constancia del intento. El estado dice como esta ahora la
+     * suscripcion; el historial dice como ha llegado hasta ahi, que es lo que
+     * hace falta cuando un cliente pregunta por un cargo.
+     *
+     * @param string|null $order        Pedido de ese intento, si se conoce.
+     * @param string|null $responseCode Ds_Response o SISxxxx, si se conoce.
      */
-    public function recordCharge(ChargeOutcome $outcome): void
+    public function recordCharge(ChargeOutcome $outcome, ?string $order = null, ?string $responseCode = null): void
     {
         match ($outcome) {
             ChargeOutcome::Authorized => $this->fill([
@@ -236,6 +255,14 @@ class Subscription extends Model
         };
 
         $this->save();
+
+        $this->charges()->create([
+            'order'           => $order,
+            'outcome'         => $outcome,
+            'response_code'   => $responseCode,
+            'amount_in_cents' => $this->amount_in_cents,
+            'created_at'      => now(),
+        ]);
     }
 
     public function nextChargeDate(): \DateTimeInterface

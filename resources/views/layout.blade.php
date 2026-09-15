@@ -148,8 +148,10 @@
     /* El motivo va en el color de su estado: en una lista de seis, es lo que
        distingue «reintenta solo» de «manda al titular al banco». */
     .why { display: block; font-weight: 500; font-size: .79rem; margin-top: .1rem; }
-    .why.past_due { color: var(--warn-ink); }
-    .why.past_due_sca { color: var(--wait-ink); }
+    .why.past_due, .why.warn { color: var(--warn-ink); }
+    .why.past_due_sca, .why.wait { color: var(--wait-ink); }
+    .why.ok { color: var(--ok-ink); }
+    .why.off { color: var(--muted); }
     /* Importes, pedidos y últimos cuatro dígitos en monoespaciada: se comparan
        en columna y se dictan por teléfono. Sin webfont, la del sistema basta. */
     .amount { color: var(--ink); font-weight: 600; font-family: var(--mono); font-size: .87rem;
@@ -183,8 +185,6 @@
     /* Estas dos no son estados de una suscripción, son el estado de la
        configuración. Van aparte para no colgarse de un nombre de estado. */
     .pill.alert        { background: var(--bad-bg);  color: var(--bad-ink); }
-    /* Ámbar, no rojo: «esto aún no está» no es una avería del panel. */
-    .pill.soon         { background: var(--warn-bg); color: var(--warn-ink); }
 
     /* ---------- Controles ---------- */
     button, .btn {

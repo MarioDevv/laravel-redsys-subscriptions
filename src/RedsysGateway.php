@@ -57,7 +57,7 @@ class RedsysGateway
     /**
      * Cobro sin el titular delante, con la referencia guardada.
      */
-    public function chargeStoredCard(Subscription $subscription, string $order): ChargeOutcome
+    public function chargeStoredCard(Subscription $subscription, string $order): ChargeResult
     {
         $request = RedsysRequest::create($this->client(), new RequestParameters(
             amountInCents:   $subscription->amount_in_cents,
@@ -76,18 +76,18 @@ class RedsysGateway
         $response = $request->sendPostRequest();
 
         if ($response instanceof PostRequestError) {
-            return ChargeOutcome::fromRedsys(null, $response->code);
+            return new ChargeResult(ChargeOutcome::fromRedsys(null, $response->code), $response->code);
         }
 
         try {
             // checkResponse() ademas verifica la firma de la respuesta.
-            $response->checkResponse();
+            $parameters = $response->checkResponse();
 
-            return ChargeOutcome::Authorized;
+            return new ChargeResult(ChargeOutcome::Authorized, $parameters->responseCode);
         } catch (DeniedRedsysPaymentResponseException $e) {
-            return ChargeOutcome::fromRedsys($e->redsysCode);
+            return new ChargeResult(ChargeOutcome::fromRedsys($e->redsysCode), $e->redsysCode);
         } catch (ErrorRedsysResponseException $e) {
-            return ChargeOutcome::fromRedsys(null, $e->redsysCode);
+            return new ChargeResult(ChargeOutcome::fromRedsys(null, $e->redsysCode), $e->redsysCode);
         }
 
         // InvalidRedsysResponseException se deja propagar a proposito: una firma

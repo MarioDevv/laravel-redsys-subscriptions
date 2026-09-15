@@ -119,7 +119,7 @@
     <div class="card">
         <div class="cap">
             <h2>Últimos cobros</h2>
-            <span class="pill soon">Hoja de ruta · todavía no se guarda ningún intento</span>
+            <a href="{{ route('redsys.subscriptions.panel.list') }}">Ver todas</a>
         </div>
 
         <table>
@@ -142,19 +142,15 @@
                     <td class="digits">{{ $charge->created_at->format('j/n H:i') }}</td>
                     <td class="who">{{ $charge->subscription->billableName() }}</td>
                     <td class="hide-narrow digits">{{ $charge->order }}</td>
-                    <td class="why {{ $charge->status }}">{{ $charge->responseLabel() }}</td>
+                    <td class="why {{ $charge->tone() }}">{{ $charge->responseLabel() }}</td>
                     <td class="num amount">{{ $charge->amountLabel() }}</td>
                 </tr>
             @empty
                 <tr>
                     <td colspan="5">
                         <div class="empty">
-                            <b>Aquí irá cada intento de cobro.</b>
-                            <p>
-                                Hoy solo se guarda el estado final de la suscripción, no lo que
-                                respondió Redsys en cada pase. Sin eso el panel no puede decirte
-                                si fue un <code>0180</code> o un <code>0195</code>.
-                            </p>
+                            <b>Todavía no se ha cobrado nada.</b>
+                            <p>Cada intento aparecerá aquí con lo que respondió Redsys.</p>
                         </div>
                     </td>
                 </tr>

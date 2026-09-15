@@ -24,8 +24,12 @@ abstract class TestCase extends Orchestra
     protected function defineEnvironment($app): void
     {
         $app['config']->set('database.default', 'testing');
+        // Con las claves ajenas desactivadas, SQLite se traga un borrado en
+        // cascada sin hacerlo, y el test pasaria mintiendo sobre lo que hace
+        // MySQL en produccion.
         $app['config']->set('database.connections.testing', [
             'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '',
+            'foreign_key_constraints' => true,
         ]);
     }
 }
