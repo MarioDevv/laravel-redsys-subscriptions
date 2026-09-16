@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('redsys_subscriptions', function (Blueprint $table) {
             $table->id();
             $table->morphs('billable');
-            $table->string('name')->default('default');
 
             // Pedido del alta de tarjeta. Con 'Enviar parametros en las URLs' en
             // NO, la notificacion servidor-a-servidor es lo unico que identifica

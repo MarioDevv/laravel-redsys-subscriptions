@@ -93,7 +93,7 @@
                     <tr>
                         <td class="who" title="{{ $s->billableName() }}">
                             <a href="{{ route('redsys.subscriptions.panel.show', $s) }}">{{ $s->billableName() }}</a>
-                            <span>Nº {{ $s->id }}@if ($s->name !== 'default'), {{ $s->name }}@endif</span>
+                            <span>Nº {{ $s->id }}</span>
                         </td>
                         <td>
                             <span class="pill {{ $s->status }}">{{ $s->statusLabel() }}</span>

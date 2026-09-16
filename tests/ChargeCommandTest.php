@@ -8,7 +8,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use MarioDevv\RedsysSubscriptions\ChargeOutcome;
 use MarioDevv\RedsysSubscriptions\ChargeResult;
-use MarioDevv\RedsysSubscriptions\RedsysGateway;
 use MarioDevv\RedsysSubscriptions\Subscription;
 
 /**
@@ -31,29 +30,10 @@ final class ChargeCommandTest extends TestCase
         ]);
     }
 
-    /** Cuenta cuantas veces se ha llamado a Redsys. */
-    private function countingGateway(): object
-    {
-        $gateway = new class ('999', 'k', 1) extends RedsysGateway {
-            public int $calls = 0;
-
-            public function chargeStoredCard(Subscription $subscription, string $order): ChargeResult
-            {
-                $this->calls++;
-
-                return new ChargeResult(ChargeOutcome::Authorized, '0000');
-            }
-        };
-
-        $this->app->instance(RedsysGateway::class, $gateway);
-
-        return $gateway;
-    }
-
     public function test_it_charges_what_is_due(): void
     {
         $this->due();
-        $gateway = $this->countingGateway();
+        $gateway = $this->fakeGateway(new ChargeResult(ChargeOutcome::Authorized, '0000'));
 
         $this->artisan('redsys:charge-subscriptions')->assertSuccessful();
 
@@ -63,7 +43,7 @@ final class ChargeCommandTest extends TestCase
     public function test_a_second_pass_does_not_charge_while_the_first_is_running(): void
     {
         $this->due();
-        $gateway = $this->countingGateway();
+        $gateway = $this->fakeGateway(new ChargeResult(ChargeOutcome::Authorized, '0000'));
 
         // Lo que hace el cron cuando el pase anterior aun no ha terminado.
         Cache::lock('redsys-subscriptions:charging', 600)->get();
@@ -78,7 +58,7 @@ final class ChargeCommandTest extends TestCase
     public function test_the_lock_is_released_so_the_next_pass_can_run(): void
     {
         $this->due();
-        $gateway = $this->countingGateway();
+        $gateway = $this->fakeGateway(new ChargeResult(ChargeOutcome::Authorized, '0000'));
 
         $this->artisan('redsys:charge-subscriptions')->assertSuccessful();
         $this->artisan('redsys:charge-subscriptions')->assertSuccessful();
@@ -93,12 +73,7 @@ final class ChargeCommandTest extends TestCase
     {
         $this->due();
 
-        $this->app->instance(RedsysGateway::class, new class ('999', 'k', 1) extends RedsysGateway {
-            public function chargeStoredCard(Subscription $subscription, string $order): ChargeResult
-            {
-                throw new \RuntimeException('Redsys no responde');
-            }
-        });
+        $this->fakeGateway(new \RuntimeException('Redsys no responde'));
 
         try {
             $this->artisan('redsys:charge-subscriptions')->run();
@@ -113,7 +88,7 @@ final class ChargeCommandTest extends TestCase
     public function test_dry_run_does_not_touch_redsys(): void
     {
         $this->due();
-        $gateway = $this->countingGateway();
+        $gateway = $this->fakeGateway(new ChargeResult(ChargeOutcome::Authorized, '0000'));
 
         $this->artisan('redsys:charge-subscriptions', ['--dry-run' => true])->assertSuccessful();
 
@@ -126,17 +101,7 @@ final class ChargeCommandTest extends TestCase
         $this->due();
         $this->due();
 
-        $gateway = new class ('999', 'k', 1) extends RedsysGateway {
-            public int $calls = 0;
-
-            public function chargeStoredCard(Subscription $subscription, string $order): ChargeResult
-            {
-                $this->calls++;
-
-                return new ChargeResult(ChargeOutcome::MerchantError, 'SIS0042');
-            }
-        };
-        $this->app->instance(RedsysGateway::class, $gateway);
+        $gateway = $this->fakeGateway(new ChargeResult(ChargeOutcome::MerchantError, 'SIS0042'));
 
         $this->artisan('redsys:charge-subscriptions')->assertFailed();
 

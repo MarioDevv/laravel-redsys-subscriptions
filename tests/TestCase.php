@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace MarioDevv\RedsysSubscriptions\Tests;
 
-use Illuminate\Database\Eloquent\Model;
+use Creagia\Redsys\Support\Signature;
+use MarioDevv\RedsysSubscriptions\ChargeResult;
+use MarioDevv\RedsysSubscriptions\RedsysGateway;
 use MarioDevv\RedsysSubscriptions\RedsysSubscriptionsServiceProvider;
+use MarioDevv\RedsysSubscriptions\Sha512Signature;
+use MarioDevv\RedsysSubscriptions\Subscription;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
@@ -14,6 +18,60 @@ abstract class TestCase extends Orchestra
     {
         parent::setUp();
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+    }
+
+    /**
+     * Un Redsys de mentira, ya registrado en el contenedor. Contesta siempre lo
+     * mismo, o lanza lo que se le pase, y cuenta las llamadas.
+     *
+     * Contar es lo unico que dice si se ha cobrado: chargeStoredCard() no puede
+     * ejecutarse de verdad en los tests, asi que sin el contador un cobro de
+     * mas pasaria desapercibido.
+     */
+    protected function fakeGateway(ChargeResult|\Throwable $answer): object
+    {
+        $gateway = new class ('999', 'k', 1) extends RedsysGateway {
+            public int $calls = 0;
+
+            public ChargeResult|\Throwable $answer;
+
+            public function chargeStoredCard(Subscription $subscription, string $order): ChargeResult
+            {
+                $this->calls++;
+
+                if ($this->answer instanceof \Throwable) {
+                    throw $this->answer;
+                }
+
+                return $this->answer;
+            }
+        };
+
+        $gateway->answer = $answer;
+
+        $this->app->instance(RedsysGateway::class, $gateway);
+
+        return $gateway;
+    }
+
+    /**
+     * El cuerpo de un POST de Redsys, firmado como lo firma el TPV.
+     *
+     * La clave se pasa porque no siempre es la buena: hay tests que firman con
+     * una distinta, o con la cadena vacia, para comprobar que se rechaza.
+     */
+    protected function signedPayload(array $params, string $key, string $version = 'HMAC_SHA256_V1'): array
+    {
+        $encoded = rtrim(strtr(base64_encode((string) json_encode($params)), '+/', '-_'), '=');
+        $order   = (string) ($params['Ds_Order'] ?? $params['DS_ORDER']);
+
+        return [
+            'Ds_SignatureVersion'   => $version,
+            'Ds_MerchantParameters' => $encoded,
+            'Ds_Signature'          => $version === 'HMAC_SHA512_V2'
+                ? Sha512Signature::sign($encoded, $order, $key)
+                : Signature::calculateSignature($encoded, $order, $key),
+        ];
     }
 
     protected function getPackageProviders($app): array

@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace MarioDevv\RedsysSubscriptions\Tests;
 
-use Creagia\Redsys\Support\Signature;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use MarioDevv\RedsysSubscriptions\Authorize;
 use MarioDevv\RedsysSubscriptions\ChargeDueSubscriptions;
 use MarioDevv\RedsysSubscriptions\ChargeOutcome;
-use MarioDevv\RedsysSubscriptions\ChargeResult;
-use MarioDevv\RedsysSubscriptions\RedsysGateway;
 use MarioDevv\RedsysSubscriptions\Subscription;
 
 /**
@@ -46,7 +43,7 @@ final class DoubleChargeTest extends TestCase
     /** Un alta autorizada, firmada con la clave que se le pase. */
     private function payload(string $order, string $key): array
     {
-        $encoded = rtrim(strtr(base64_encode((string) json_encode([
+        return $this->signedPayload([
             'Ds_Order'               => $order,
             'Ds_Response'            => '0000',
             'Ds_Amount'              => '1500',
@@ -54,13 +51,7 @@ final class DoubleChargeTest extends TestCase
             'Ds_Merchant_Identifier' => 'referencia-que-pone-el-atacante',
             'Ds_Card_Number'         => '454881******0004',
             'Ds_ExpiryDate'          => '4912',
-        ])), '+/', '-_'), '=');
-
-        return [
-            'Ds_SignatureVersion'   => 'HMAC_SHA256_V1',
-            'Ds_MerchantParameters' => $encoded,
-            'Ds_Signature'          => Signature::calculateSignature($encoded, $order, $key),
-        ];
+        ], $key);
     }
 
     /**
@@ -193,12 +184,7 @@ final class DoubleChargeTest extends TestCase
 
         $s = $this->subscription(['status' => Subscription::PAST_DUE, 'failures' => 1]);
 
-        $this->app->instance(RedsysGateway::class, new class ('999', 'k', 1) extends RedsysGateway {
-            public function chargeStoredCard(Subscription $subscription, string $order): ChargeResult
-            {
-                throw new \LogicException('Ha cobrado con un pase en marcha.');
-            }
-        });
+        $this->fakeGateway(new \LogicException('Ha cobrado con un pase en marcha.'));
 
         Cache::lock(ChargeDueSubscriptions::LOCK, 60)->get();
 

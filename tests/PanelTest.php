@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Gate;
 use MarioDevv\RedsysSubscriptions\Authorize;
 use MarioDevv\RedsysSubscriptions\ChargeOutcome;
 use MarioDevv\RedsysSubscriptions\ChargeResult;
-use MarioDevv\RedsysSubscriptions\RedsysGateway;
 use MarioDevv\RedsysSubscriptions\Subscription;
 
 /**
@@ -151,12 +150,7 @@ final class PanelTest extends TestCase
         $this->allowEveryone();
         $s = $this->subscription(['status' => Subscription::PAST_DUE, 'failures' => 1]);
 
-        $this->app->instance(RedsysGateway::class, new class ('999', 'k', 1) extends RedsysGateway {
-            public function chargeStoredCard(Subscription $subscription, string $order): ChargeResult
-            {
-                return new ChargeResult(ChargeOutcome::Authorized, '0000');
-            }
-        });
+        $this->fakeGateway(new ChargeResult(ChargeOutcome::Authorized, '0000'));
 
         $this->post(route('redsys.subscriptions.panel.charge', $s))->assertRedirect();
 

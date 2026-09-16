@@ -13,25 +13,24 @@ trait Billable
         return $this->morphMany(Subscription::class, 'billable');
     }
 
-    public function subscription(string $name = 'default'): ?Subscription
+    public function subscription(): ?Subscription
     {
-        return $this->redsysSubscriptions()->where('name', $name)->latest('id')->first();
+        return $this->redsysSubscriptions()->latest('id')->first();
     }
 
     /** Incluye a quien se dio de baja pero aun tiene periodo pagado. */
-    public function subscribed(string $name = 'default'): bool
+    public function subscribed(): bool
     {
-        return (bool) $this->subscription($name)?->valid();
+        return (bool) $this->subscription()?->valid();
     }
 
     /**
      * Crea la suscripcion en estado incomplete. Se activa cuando vuelve el
      * pago inicial con la referencia de tarjeta.
      */
-    public function newSubscription(int $amountInCents, string $interval = 'monthly', string $name = 'default'): Subscription
+    public function newSubscription(int $amountInCents, string $interval = 'monthly'): Subscription
     {
         return $this->redsysSubscriptions()->create([
-            'name'            => $name,
             'amount_in_cents' => $amountInCents,
             'interval'        => $interval,
             'status'          => Subscription::INCOMPLETE,

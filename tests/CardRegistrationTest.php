@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace MarioDevv\RedsysSubscriptions\Tests;
 
-use Creagia\Redsys\Support\Signature;
-use MarioDevv\RedsysSubscriptions\Sha512Signature;
 use MarioDevv\RedsysSubscriptions\Subscription;
 
 /**
@@ -61,16 +59,7 @@ final class CardRegistrationTest extends TestCase
     /** El cuerpo del POST, firmado como lo firma el TPV. */
     private function payload(array $params, string $version = 'HMAC_SHA256_V1'): array
     {
-        $encoded = rtrim(strtr(base64_encode((string) json_encode($params)), '+/', '-_'), '=');
-        $order   = (string) ($params['Ds_Order'] ?? $params['DS_ORDER']);
-
-        return [
-            'Ds_SignatureVersion'   => $version,
-            'Ds_MerchantParameters' => $encoded,
-            'Ds_Signature'          => $version === 'HMAC_SHA512_V2'
-                ? Sha512Signature::sign($encoded, $order, self::KEY)
-                : Signature::calculateSignature($encoded, $order, self::KEY),
-        ];
+        return $this->signedPayload($params, self::KEY, $version);
     }
 
     /** El pedido es el unico hilo entre la suscripcion y lo que Redsys
