@@ -96,7 +96,21 @@ class Subscription extends Model
      */
     public function cardRegistrationForm(): string
     {
-        $this->update(['checkout_order' => $order = $this->newOrder()]);
+        // El pedido solo se estrena si no hay uno esperando respuesta. Se
+        // machacaba en cada render, y como el alta cobra de verdad, pagar desde
+        // un formulario viejo —una recarga, otra pestana, el enlace de cambio
+        // de tarjeta abierto en el movil y luego en el escritorio— cargaba el
+        // importe con un pedido que ya no estaba guardado: dinero cobrado y
+        // nadie a quien activar. Pagando desde los dos, dos cargos. Repitiendo
+        // el pedido es Redsys quien deduplica, con SIS0051.
+        //
+        // Con tarjeta ya guardada siempre estrena: ese pedido esta consumido y
+        // repetirlo daria SIS0051. Es el caso del cambio de tarjeta.
+        $order = $this->card_token === null
+            ? $this->checkout_order ?? $this->newOrder()
+            : $this->newOrder();
+
+        $this->update(['checkout_order' => $order]);
 
         return app(RedsysGateway::class)->cardRegistrationForm(
             amountInCents: $this->amount_in_cents,
@@ -117,20 +131,28 @@ class Subscription extends Model
     {
         $order = $params['DS_ORDER'] ?? $this->checkout_order;
 
-        // Un alta denegada no cancela nada: sigue incomplete y el titular puede
-        // reintentar. Sin referencia de tarjeta tampoco se activa, o quedaria
-        // activa sin poder cobrar e invisible para el scope due().
-        //
-        // Y un pedido ya procesado no se repite: la notificacion y la vuelta
-        // del navegador pueden llegar las dos, y la segunda no debe mover la
-        // fecha de cobro. Se mira el pedido y no si esta activa, porque una
+        // Un pedido ya procesado no se repite: la notificacion y la vuelta del
+        // navegador pueden llegar las dos, y la segunda no debe mover la fecha
+        // de cobro. Se mira el pedido y no si esta activa, porque una
         // suscripcion viva tiene que poder registrar otra tarjeta: es lo que
         // hace falta cuando Redsys mata la referencia con SIS0321.
-        if (
-            ChargeOutcome::fromRedsys($params['DS_RESPONSE'] ?? null) !== ChargeOutcome::Authorized
-            || empty($params['DS_MERCHANT_IDENTIFIER'])
-            || $this->charges()->where('order', $order)->exists()
-        ) {
+        if ($this->charges()->where('order', $order)->exists()) {
+            return;
+        }
+
+        // Un alta denegada no cancela nada: sigue incomplete y el titular puede
+        // reintentar. Suelta el pedido para que el proximo formulario estrene
+        // uno: Redsys ya tiene este, y repetirlo seria SIS0051.
+        if (ChargeOutcome::fromRedsys($params['DS_RESPONSE'] ?? null) !== ChargeOutcome::Authorized) {
+            $this->update(['checkout_order' => null]);
+
+            return;
+        }
+
+        // Autorizado pero sin referencia de tarjeta: no se activa, o quedaria
+        // activa sin poder cobrar e invisible para el scope due(). El pedido se
+        // conserva, que ese cobro si ha salido y hay que poder reconciliarlo.
+        if (empty($params['DS_MERCHANT_IDENTIFIER'])) {
             return;
         }
 
@@ -237,11 +259,18 @@ class Subscription extends Model
         );
     }
 
-    /** Pedido nuevo. Redsys los quiere de 12 caracteres como mucho, los 4
-     *  primeros numericos, y rechaza los repetidos con SIS0051. */
+    /**
+     * Pedido nuevo. Redsys los quiere de 12 caracteres como mucho, los 4
+     * primeros numericos, y rechaza los repetidos con SIS0051.
+     *
+     * Los cuatro ultimos son aleatorios y no el id de la suscripcion: con el id
+     * modulo 100 dos intentos dentro del mismo segundo salian identicos, y eso
+     * es un pedido que Redsys ya tiene. Se notaba al reintentar un alta
+     * denegada, que es justo cuando el titular esta delante mirando.
+     */
     public function newOrder(): string
     {
-        return substr((string) time(), -8) . str_pad((string) ($this->id % 100), 2, '0', STR_PAD_LEFT);
+        return substr((string) time(), -8) . strtoupper(bin2hex(random_bytes(2)));
     }
 
     /**

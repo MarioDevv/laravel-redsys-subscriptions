@@ -49,13 +49,15 @@ class RedsysCallbacks
             ->where('checkout_order', $params['DS_ORDER'] ?? '')
             ->first();
 
-        // Firma buena y ningun pedido que case: si el cobro salio autorizado,
-        // el titular ha pagado y no hay a quien activar. Pasa porque
-        // checkout_order solo guarda el ultimo pedido rendereado. Sin esto el
-        // unico rastro del cargo esta en el back office de Redsys.
-        $subscription
-            ? $subscription->completeCheckout($params)
-            : Log::warning('Redsys notifica un pedido que no existe.', $params);
+        // Un cobro autorizado cuyo pedido no conocemos es dinero cobrado sin
+        // nadie a quien activar, y su unico rastro esta en el back office de
+        // Redsys. Los no autorizados no avisan: un alta denegada suelta su
+        // pedido, asi que su notificacion tardia llega aqui y no es nada raro.
+        if ($subscription) {
+            $subscription->completeCheckout($params);
+        } elseif (ChargeOutcome::fromRedsys($params['DS_RESPONSE'] ?? null) === ChargeOutcome::Authorized) {
+            Log::warning('Redsys notifica un cobro autorizado cuyo pedido no existe.', $params);
+        }
 
         // Redsys reintenta la notificacion si no recibe un 200.
         return response('OK');

@@ -136,6 +136,53 @@ final class DoubleChargeTest extends TestCase
     }
 
     /**
+     * El alta cobra de verdad. Si cada render estrena pedido, el titular que
+     * paga desde una pestaña vieja carga el importe con un pedido que ya no
+     * está guardado: dinero cobrado y nadie a quien activar. Pagando desde las
+     * dos pestañas, dos cargos y una sola suscripción.
+     */
+    public function test_rendering_the_form_twice_keeps_the_same_order(): void
+    {
+        $s = $this->subscription(['status' => Subscription::INCOMPLETE, 'card_token' => null, 'checkout_order' => null]);
+
+        $s->cardRegistrationForm();
+        $primero = $s->refresh()->checkout_order;
+
+        $s->cardRegistrationForm();
+
+        $this->assertSame($primero, $s->refresh()->checkout_order, 'El segundo formulario ha machacado el pedido del primero.');
+    }
+
+    /** Con tarjeta guardada el pedido anterior esta consumido: cambiar de
+     *  tarjeta tiene que estrenar uno o Redsys responde SIS0051. */
+    public function test_changing_the_card_always_gets_a_fresh_order(): void
+    {
+        $s = $this->subscription(['checkout_order' => 'viejo-000001']);
+
+        $s->cardRegistrationForm();
+
+        $this->assertNotSame('viejo-000001', $s->refresh()->checkout_order);
+    }
+
+    /** Un alta denegada suelta su pedido: Redsys ya lo tiene, y reintentar con
+     *  el mismo seria SIS0051, o sea que el titular no podria reintentar. */
+    public function test_a_denied_registration_releases_its_order(): void
+    {
+        $s = $this->subscription(['status' => Subscription::INCOMPLETE, 'card_token' => null, 'checkout_order' => null]);
+
+        $s->cardRegistrationForm();
+        $order = $s->refresh()->checkout_order;
+
+        $s->completeCheckout(['DS_ORDER' => $order, 'DS_RESPONSE' => '0180']);
+
+        $this->assertNull($s->refresh()->checkout_order);
+
+        $s->cardRegistrationForm();
+
+        $this->assertNotSame($order, $s->refresh()->checkout_order, 'El reintento repite un pedido que Redsys ya tiene.');
+    }
+
+    /**
      * El cron a las 03:00 y soporte pulsando «Cobrar ahora» son dos
      * autorizaciones con pedidos distintos sobre la misma tarjeta, y Redsys no
      * tiene forma de saber que son el mismo cobro.

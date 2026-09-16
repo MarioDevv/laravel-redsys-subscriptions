@@ -138,7 +138,15 @@ lo anota como pago fallido. Una versión de firma desconocida tampoco se adivina
 Se aceptan `HMAC_SHA256_V1` y `HMAC_SHA512_V2`, la que tenga configurada tu TPV.
 
 Un alta denegada deja la suscripción en `incomplete` y el titular puede
-reintentarla.
+reintentarla, con un pedido nuevo: el anterior ya lo tiene Redsys.
+
+**Mientras el alta sigue en el aire, el formulario devuelve siempre el mismo
+pedido.** Da igual que se recargue, que se abra en otra pestaña o que el enlace
+de cambio de tarjeta se abra primero en el móvil y luego en el escritorio.
+Importa porque el alta **cobra de verdad**: con un pedido distinto por pantalla,
+pagar desde la que quedó vieja carga el importe de una suscripción que ya no lo
+espera, y pagar desde las dos son dos cargos. Repitiendo el pedido, Redsys los
+deduplica con `SIS0051` y solo puede entrar uno.
 
 Programa el comando en `routes/console.php`:
 
