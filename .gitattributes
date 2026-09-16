@@ -1,0 +1,10 @@
+# Lo que NO viaja en `composer require`. El laboratorio, los tests y el CI son
+# para quien clona el repositorio; en el vendor de quien instala el paquete solo
+# estorban y engordan el despliegue.
+/.github            export-ignore
+/docker             export-ignore
+/tests              export-ignore
+/docker-compose.yml export-ignore
+/phpunit.xml        export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore

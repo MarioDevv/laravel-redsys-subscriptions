@@ -7,6 +7,7 @@ namespace MarioDevv\RedsysSubscriptions;
 use Creagia\Redsys\Enums\{CofType, Currency, Environment, ExcepSca, TransactionType};
 use Creagia\Redsys\RedsysClient;
 use Creagia\Redsys\RedsysRequest;
+use Creagia\Redsys\RedsysResponse;
 use Creagia\Redsys\Exceptions\DeniedRedsysPaymentResponseException;
 use Creagia\Redsys\Exceptions\ErrorRedsysResponseException;
 use Creagia\Redsys\Support\PostRequestError;
@@ -73,7 +74,7 @@ class RedsysGateway
             merchantIdentifier: (string) $subscription->card_token,
         );
 
-        $response = $request->sendPostRequest();
+        $response = $this->send($request);
 
         if ($response instanceof PostRequestError) {
             return new ChargeResult(ChargeOutcome::fromRedsys(null, $response->code), $response->code);
@@ -93,5 +94,19 @@ class RedsysGateway
         // InvalidRedsysResponseException se deja propagar a proposito: una firma
         // que no cuadra no es un cobro denegado, es una respuesta en la que no
         // se puede confiar. Tragarsela seria aceptar datos sin autenticar.
+    }
+
+    /**
+     * La unica llamada que sale a Redsys de verdad, aparte para poder
+     * sustituirla en los tests.
+     *
+     * Lo que hay encima es lo que decide si un cobro cuenta como denegado, como
+     * culpa de tu configuracion o como transitorio, y eso es la mitad del
+     * paquete. Sin esta costura no se puede probar sin una tarjeta y una red,
+     * que es como estaba: sin una sola asercion.
+     */
+    protected function send(RedsysRequest $request): RedsysResponse|PostRequestError
+    {
+        return $request->sendPostRequest();
     }
 }
