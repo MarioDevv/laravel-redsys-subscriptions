@@ -30,8 +30,13 @@ class SubscriptionsPanel
                 ->orderBy('next_charge_at')
                 ->limit(6)
                 ->get(),
+            // Con pending_order se queda 'active' y en verde, sin cobrarse:
+            // es un cobro del que no sabemos el desenlace, y solo lo desatasca
+            // alguien mirando el back office. Si no sale aqui, no sale.
             'attention' => Subscription::query()
-                ->whereIn('status', [Subscription::PAST_DUE, Subscription::PAST_DUE_SCA])
+                ->where(fn ($q) => $q
+                    ->whereIn('status', [Subscription::PAST_DUE, Subscription::PAST_DUE_SCA])
+                    ->orWhereNotNull('pending_order'))
                 ->latest('updated_at')
                 ->limit(6)
                 ->get(),

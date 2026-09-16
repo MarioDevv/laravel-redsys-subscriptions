@@ -69,8 +69,10 @@
                         <tr>
                             <td class="who">
                                 <a href="{{ route('redsys.subscriptions.panel.show', $s) }}">{{ $s->billableName() }}</a>
-                                <span class="why {{ $s->status }}">
-                                    @if ($s->status === Subscription::PAST_DUE_SCA)
+                                <span class="why {{ $s->pending_order ? 'bad' : $s->status }}">
+                                    @if ($s->pending_order)
+                                        Cobro sin respuesta · pedido {{ $s->pending_order }}
+                                    @elseif ($s->status === Subscription::PAST_DUE_SCA)
                                         0195 · el banco pide que autentique
                                     @else
                                         Intento {{ $s->failures }} de {{ Subscription::MAX_FAILURES }}

@@ -123,6 +123,15 @@
                         <dd><code>{{ $subscription->cof_transaction_id ?? '—' }}</code></dd>
                         <dt>Pedido del alta</dt>
                         <dd class="digits">{{ $subscription->checkout_order ?? '—' }}</dd>
+                        @if ($subscription->pending_order)
+                            {{-- Se mando y no volvio respuesta fiable. Puede estar
+                                 cobrado: el unico sitio donde se sabe es Redsys. --}}
+                            <dt>Cobro en el aire</dt>
+                            <dd class="digits">
+                                {{ $subscription->pending_order }}
+                                <span class="expiry">Búscalo en el back office: puede estar cobrado</span>
+                            </dd>
+                        @endif
                     </dl>
                 @else
                     <div class="empty">

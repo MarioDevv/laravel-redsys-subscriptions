@@ -148,6 +148,12 @@ pagar desde la que quedó vieja carga el importe de una suscripción que ya no l
 espera, y pagar desde las dos son dos cargos. Repitiendo el pedido, Redsys los
 deduplica con `SIS0051` y solo puede entrar uno.
 
+Para ver qué se cobraría sin cobrar nada, `--dry-run`:
+
+```bash
+php artisan redsys:charge-subscriptions --dry-run
+```
+
 Programa el comando en `routes/console.php`:
 
 ```php

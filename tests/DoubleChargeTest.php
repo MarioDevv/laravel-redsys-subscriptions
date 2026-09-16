@@ -174,6 +174,24 @@ final class DoubleChargeTest extends TestCase
     }
 
     /**
+     * Una suscripción con un cobro en el aire se queda `active` y en verde. Si
+     * el panel no la saca, el techo que acepta este paquete —no desatascarla
+     * sola, que alguien mire Redsys— descansa en un humano que no puede verla.
+     */
+    public function test_a_charge_left_in_the_air_shows_up_as_needing_attention(): void
+    {
+        Gate::define(Authorize::GATE, fn ($user = null) => true);
+
+        $s = $this->subscription();
+        $s->beginCharge();
+
+        $this->get(route('redsys.subscriptions.panel.index'))
+            ->assertOk()
+            ->assertSee('Cobro sin respuesta')
+            ->assertSee($s->refresh()->pending_order);
+    }
+
+    /**
      * El cron a las 03:00 y soporte pulsando «Cobrar ahora» son dos
      * autorizaciones con pedidos distintos sobre la misma tarjeta, y Redsys no
      * tiene forma de saber que son el mismo cobro.
