@@ -56,7 +56,14 @@ class RedsysCallbacks
         if ($subscription) {
             $subscription->completeCheckout($params);
         } elseif (ChargeOutcome::fromRedsys($params['DS_RESPONSE'] ?? null) === ChargeOutcome::Authorized) {
-            Log::warning('Redsys notifica un cobro autorizado cuyo pedido no existe.', $params);
+            // Campos sueltos y no $params entero: ahi dentro viaja
+            // DS_MERCHANT_IDENTIFIER, que es la referencia de cobro de una
+            // tarjeta y no tiene por que quedarse escrita en el log.
+            Log::warning('Redsys notifica un cobro autorizado cuyo pedido no existe.', [
+                'order'    => $params['DS_ORDER'] ?? null,
+                'response' => $params['DS_RESPONSE'] ?? null,
+                'amount'   => $params['DS_AMOUNT'] ?? null,
+            ]);
         }
 
         // Redsys reintenta la notificacion si no recibe un 200.

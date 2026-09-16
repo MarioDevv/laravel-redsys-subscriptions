@@ -106,8 +106,8 @@ class Subscription extends Model
         //
         // Con tarjeta ya guardada siempre estrena: ese pedido esta consumido y
         // repetirlo daria SIS0051. Es el caso del cambio de tarjeta.
-        $order = $this->card_token === null
-            ? $this->checkout_order ?? $this->newOrder()
+        $order = $this->card_token === null && $this->checkout_order
+            ? $this->checkout_order
             : $this->newOrder();
 
         $this->update(['checkout_order' => $order]);

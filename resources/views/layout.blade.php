@@ -183,7 +183,7 @@
        clientes que pagan. */
     .pill.past_due_sca { background: var(--wait-bg); color: var(--wait-ink); }
     /* Gris, no rojo: una baja es un final ordenado, no una avería. */
-    .pill.canceled     { background: var(--off-bg);  color: var(--off-ink); }
+    .pill.canceled,
     .pill.incomplete   { background: var(--off-bg);  color: var(--off-ink); }
     /* Estas dos no son estados de una suscripción, son el estado de la
        configuración. Van aparte para no colgarse de un nombre de estado. */
@@ -387,6 +387,5 @@
         });
     });
 </script>
-@stack('scripts')
 </body>
 </html>

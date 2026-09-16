@@ -22,6 +22,5 @@
     "laravel": { "providers": ["MarioDevv\\RedsysSubscriptions\\RedsysSubscriptionsServiceProvider"] }
   },
   "scripts": { "test": "phpunit" },
-  "minimum-stability": "stable",
   "config": { "sort-packages": true }
 }

@@ -40,7 +40,7 @@ final class Sha512Signature
     public static function verify(string $received, string $merchantParameters, string $order, string $key): bool
     {
         return hash_equals(
-            self::normalize(self::sign($merchantParameters, $order, $key)),
+            self::sign($merchantParameters, $order, $key),
             self::normalize($received),
         );
     }

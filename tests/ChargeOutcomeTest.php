@@ -59,9 +59,9 @@ final class ChargeOutcomeTest extends TestCase
     {
         // Es la diferencia entre revisar tu configuracion y cancelar a un
         // cliente que paga.
-        $this->assertFalse(ChargeOutcome::fromRedsys(null, 'SIS0042')->blamesTheCardholder());
-        $this->assertFalse(ChargeOutcome::fromRedsys('0912')->blamesTheCardholder());
-        $this->assertTrue(ChargeOutcome::fromRedsys('0190')->blamesTheCardholder());
+        $this->assertNotSame(ChargeOutcome::Declined, ChargeOutcome::fromRedsys(null, 'SIS0042'));
+        $this->assertNotSame(ChargeOutcome::Declined, ChargeOutcome::fromRedsys('0912'));
+        $this->assertSame(ChargeOutcome::Declined, ChargeOutcome::fromRedsys('0190'));
     }
 
     public function test_a_sis_code_is_never_read_as_an_authorisation(): void

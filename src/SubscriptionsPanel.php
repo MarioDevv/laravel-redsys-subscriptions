@@ -130,9 +130,9 @@ class SubscriptionsPanel
         ]);
     }
 
-    public function cancel(Request $request, Subscription $subscription): RedirectResponse
+    public function cancel(Subscription $subscription): RedirectResponse
     {
-        $request->boolean('now') ? $subscription->cancelNow() : $subscription->cancel();
+        $subscription->cancel();
 
         return back()->with('redsys_message', "{$subscription->billableName()} ya no tiene cobros programados.");
     }
@@ -199,7 +199,7 @@ class SubscriptionsPanel
         // siempre las mismas entradas y en el mismo orden.
         $byStatus = [];
 
-        foreach (Subscription::statusLabels() as $status => $label) {
+        foreach (array_keys(Subscription::statusLabels()) as $status) {
             $byStatus[$status] = (int) ($counts[$status] ?? 0);
         }
 

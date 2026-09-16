@@ -119,9 +119,4 @@ enum ChargeOutcome: string
         };
     }
 
-    /** Si cuenta como intento fallido del titular. */
-    public function blamesTheCardholder(): bool
-    {
-        return $this === self::Declined;
-    }
 }
