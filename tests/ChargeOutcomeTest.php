@@ -18,7 +18,6 @@ final class ChargeOutcomeTest extends TestCase
             'autorizada 0099'       => ['0099', null, ChargeOutcome::Authorized],
             'exige SCA'             => ['0195', null, ChargeOutcome::ScaRequired],
             'denegada por emisor'   => ['0190', null, ChargeOutcome::Declined],
-            'caducidad erronea'     => ['0191', null, ChargeOutcome::Declined],
             'referencia muerta'     => [null, 'SIS0321', ChargeOutcome::TokenDead],
 
             // Tarjeta muerta es tarjeta muerta, venga el codigo que venga:

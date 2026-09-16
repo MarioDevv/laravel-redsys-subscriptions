@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MarioDevv\RedsysSubscriptions\Tests;
 
+use Illuminate\Support\Carbon;
 use MarioDevv\RedsysSubscriptions\ChargeOutcome;
 use MarioDevv\RedsysSubscriptions\Subscription;
 
@@ -23,6 +24,46 @@ final class SubscriptionStateTest extends TestCase
             'status'           => Subscription::ACTIVE,
             'next_charge_at'   => now()->subDay(),
         ], $attributes));
+    }
+
+    /**
+     * addMonth() sobre un 31 de enero se iba al 3 de marzo: al sumar un mes a
+     * una fecha que no existe en febrero, Carbon sigue contando. El dia de
+     * cobro del titular se muda solo y ya no vuelve.
+     */
+    public function test_a_monthly_charge_does_not_jump_over_the_short_month(): void
+    {
+        Carbon::setTestNow('2026-01-31 10:00');
+        $s = $this->subscription(['next_charge_at' => Carbon::parse('2026-01-31 10:00')]);
+
+        $s->recordCharge(ChargeOutcome::Authorized, 'enero', '0000');
+
+        $this->assertSame('2026-02-28', $s->refresh()->next_charge_at->toDateString());
+    }
+
+    /**
+     * En el ciclo recurrente next_charge_at siempre esta en el pasado, que es
+     * justo por lo que la suscripcion entra en due(). Anclar en now() alargaba
+     * cada periodo lo que tardara el pase: doce ciclos, casi dos semanas de
+     * servicio regalado.
+     */
+    public function test_the_charge_date_keeps_its_hour_when_the_pass_runs_late(): void
+    {
+        $s = $this->subscription(['next_charge_at' => Carbon::parse('2026-03-10 14:00')]);
+
+        // El cron pasa a las 03:00 del dia siguiente, trece horas tarde.
+        Carbon::setTestNow('2026-03-11 03:00');
+
+        $s->recordCharge(ChargeOutcome::Authorized, 'marzo', '0000');
+
+        $this->assertSame('2026-04-10 14:00', $s->refresh()->next_charge_at->format('Y-m-d H:i'));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     public function test_authorized_charge_keeps_it_active_and_moves_the_date(): void

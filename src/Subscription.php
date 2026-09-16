@@ -391,15 +391,39 @@ class Subscription extends Model
         return $charge;
     }
 
+    /**
+     * Cuando toca el siguiente cobro.
+     *
+     * Se ancla en la fecha que tocaba y no en cuando corre el cron. En el ciclo
+     * recurrente next_charge_at siempre esta en el pasado —por eso la
+     * suscripcion estaba vencida—, asi que anclar en now() alargaba cada
+     * periodo lo que tardara el pase en llegar: con el cron a las 03:00 y un
+     * alta a las 14:00, un mes y trece horas. Doce ciclos son casi dos semanas
+     * de servicio regalado al año.
+     *
+     * Y avanza sin desbordar: addMonth() sobre un 31 de enero se iba al 3 de
+     * marzo, porque al sumar un mes a una fecha que no existe en febrero Carbon
+     * sigue contando. Eso muda la fecha de cobro del titular y no vuelve.
+     *
+     * ponytail: sin dia de anclaje guardado. Un 31 de enero pasa a 28 de
+     * febrero y ahi se queda, en vez de volver al 31 en marzo. Si alguien se
+     * queja, guardar el dia original y recuperarlo cuando el mes de para tanto.
+     */
     public function nextChargeDate(): \DateTimeInterface
     {
-        $from = $this->next_charge_at?->isFuture() ? $this->next_charge_at : now();
+        $next = $this->next_charge_at ?? now();
 
-        return match ($this->interval) {
-            'yearly'  => $from->copy()->addYear(),
-            'weekly'  => $from->copy()->addWeek(),
-            default   => $from->copy()->addMonth(),
-        };
+        // Si estuvo vencida varios periodos, salta hasta el proximo que quede
+        // por delante: se cobra una cuota, no todas las que se perdieron.
+        do {
+            $next = match ($this->interval) {
+                'yearly'  => $next->copy()->addYearNoOverflow(),
+                'weekly'  => $next->copy()->addWeek(),
+                default   => $next->copy()->addMonthNoOverflow(),
+            };
+        } while ($next->isPast());
+
+        return $next;
     }
 
     public function scopeDue($query)
