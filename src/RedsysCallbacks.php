@@ -8,6 +8,7 @@ use Creagia\Redsys\Support\Signature;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 /**
  * La vuelta de Redsys tras el alta de tarjeta.
@@ -44,10 +45,17 @@ class RedsysCallbacks
             return response('Firma invalida', 403);
         }
 
-        Subscription::query()
+        $subscription = Subscription::query()
             ->where('checkout_order', $params['DS_ORDER'] ?? '')
-            ->first()
-            ?->completeCheckout($params);
+            ->first();
+
+        // Firma buena y ningun pedido que case: si el cobro salio autorizado,
+        // el titular ha pagado y no hay a quien activar. Pasa porque
+        // checkout_order solo guarda el ultimo pedido rendereado. Sin esto el
+        // unico rastro del cargo esta en el back office de Redsys.
+        $subscription
+            ? $subscription->completeCheckout($params)
+            : Log::warning('Redsys notifica un pedido que no existe.', $params);
 
         // Redsys reintenta la notificacion si no recibe un 200.
         return response('OK');
@@ -95,6 +103,15 @@ class RedsysCallbacks
         $params = array_change_key_case($params, CASE_UPPER);
         $order  = (string) ($params['DS_ORDER'] ?? '');
         $key    = (string) config('redsys-subscriptions.secret_key');
+
+        // Sin clave configurada no se verifica nada: se rechaza y punto.
+        // openssl_encrypt no falla con una clave vacia, la rellena de ceros y
+        // produce una firma perfectamente calculable, asi que cualquiera podria
+        // forjar una notificacion y activarse una suscripcion sin pagar. Es el
+        // unico control de autenticidad que hay aqui: si falta, no queda nada.
+        if ($key === '') {
+            return null;
+        }
 
         // La firma se comprueba sobre el texto tal y como llego, nunca sobre lo
         // que hemos decodificado. La version la elige el comercio en su TPV.

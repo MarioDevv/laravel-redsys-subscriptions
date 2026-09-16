@@ -406,9 +406,17 @@ Dos detalles que cuestan caro si se ignoran:
 - **`0195` no es un rechazo de tarjeta.** El emisor pide autenticación del titular
   para *esa* cuota. La tarjeta sigue viva y volverá a cobrar el mes siguiente.
   Cancelar aquí es tirar clientes que pagan.
-- **Cada intento necesita su propio número de pedido.** Redsys rechaza los
-  repetidos con `SIS0051`, reintentos incluidos. Ese código cuenta como
-  transitorio y no como fallo del titular: el choque es nuestro, no suyo.
+- **Cada intento estrena número de pedido, menos uno.** Redsys rechaza los
+  repetidos con `SIS0051`. Ese código cuenta como transitorio y no como fallo
+  del titular: el choque es nuestro, no suyo. La excepción es el cobro que se
+  quedó sin respuesta fiable —se cayó la red, o volvió algo que no venía
+  firmado por Redsys—: ahí puede que la autorizara y el dinero esté cobrado,
+  así que el pedido se guarda y **el siguiente intento repite ese mismo**. Es
+  la única forma de que Redsys pueda hacer de guardia, porque dos pedidos
+  distintos para él son dos cobros. Si entonces responde `SIS0051`, lo único
+  que sabes es que ya lo tenía, no cómo acabó: esa suscripción se queda
+  esperando a que alguien mire el back office. No cobrar dos veces vale más que
+  desatascarla sola.
 - **Un fallo espera `Subscription::RETRY_DAYS` antes del siguiente intento.**
   Reintentar el mismo día es gastar los tres contra el mismo saldo vacío; tres
   días dan margen a que entre una nómina.

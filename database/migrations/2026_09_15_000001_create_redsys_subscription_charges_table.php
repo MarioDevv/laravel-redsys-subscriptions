@@ -31,6 +31,13 @@ return new class extends Migration
             $table->timestamp('created_at');
 
             $table->index(['subscription_id', 'created_at']);
+
+            // Un pedido solo puede anotarse una vez por suscripcion, y de eso
+            // responde la base de datos. La notificacion servidor-a-servidor y
+            // la vuelta del navegador llegan a la vez en cada alta: mirar antes
+            // si el pedido ya estaba es una carrera que ganan las dos, y
+            // entonces el alta se anota dos veces y suma dos meses por un pago.
+            $table->unique(['subscription_id', 'order']);
         });
     }
 

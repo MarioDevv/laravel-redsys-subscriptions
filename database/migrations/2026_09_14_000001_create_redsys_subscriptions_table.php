@@ -18,6 +18,12 @@ return new class extends Migration
             // la suscripcion, y solo trae Ds_Order.
             $table->string('checkout_order', 12)->nullable()->unique();
 
+            // Pedido de un cobro que se envio y del que no se sabe el desenlace.
+            // Si la respuesta de Redsys se pierde, el dinero puede estar cobrado:
+            // el siguiente intento reutiliza este pedido y deja que Redsys haga
+            // de guardia, porque rechaza los repetidos con SIS0051.
+            $table->string('pending_order', 12)->nullable();
+
             // Referencia de tarjeta devuelta por Redsys en el pago inicial (COF)
             $table->string('card_token')->nullable();
             $table->string('cof_transaction_id')->nullable();

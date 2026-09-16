@@ -7,6 +7,8 @@ namespace MarioDevv\RedsysSubscriptions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use MarioDevv\RedsysSubscriptions\Events\SubscriptionCharged;
 
@@ -243,6 +245,23 @@ class Subscription extends Model
     }
 
     /**
+     * El pedido con el que se va a cobrar, guardado antes de enviarlo.
+     *
+     * Si un intento anterior se quedo sin respuesta fiable, su pedido sigue
+     * aqui y se reutiliza: puede que Redsys lo autorizase y el dinero este
+     * cobrado, y mandar uno nuevo seria cobrar otra vez. Repitiendolo, Redsys
+     * hace de guardia y contesta SIS0051, que ya se trata como transitorio.
+     */
+    public function beginCharge(): string
+    {
+        $order = $this->pending_order ?? $this->newOrder();
+
+        $this->update(['pending_order' => $order]);
+
+        return $order;
+    }
+
+    /**
      * Aplica el resultado de un cobro. Aqui vive toda la logica de estados.
      *
      * Deja ademas constancia del intento. El estado dice como esta ahora la
@@ -254,6 +273,36 @@ class Subscription extends Model
      */
     public function recordCharge(ChargeOutcome $outcome, ?string $order = null, ?string $responseCode = null): void
     {
+        try {
+            $charge = DB::transaction(fn () => $this->applyCharge($outcome, $order, $responseCode));
+        } catch (UniqueConstraintViolationException) {
+            // Ese pedido ya estaba anotado en esta suscripcion: gana quien
+            // llego primero y el segundo no toca nada. Es el caso de cada alta,
+            // donde la notificacion de Redsys y la vuelta del navegador llegan
+            // a la vez; sin esto la segunda sumaria otro periodo por un pago.
+            return;
+        }
+
+        // Se dispara con el estado ya aplicado: quien escuche puede mirar
+        // $subscription->status y saber si ademas se ha quedado cancelada.
+        event(new SubscriptionCharged($this, $charge));
+    }
+
+    /**
+     * El intento se anota primero, y es el indice unico (subscription_id,
+     * order) quien decide si ya estaba. Mirarlo antes con un select y escribir
+     * despues es una carrera: los dos caminos de vuelta de Redsys la pasan.
+     */
+    private function applyCharge(ChargeOutcome $outcome, ?string $order, ?string $responseCode): Charge
+    {
+        $charge = $this->charges()->create([
+            'order'           => $order,
+            'outcome'         => $outcome,
+            'response_code'   => $responseCode,
+            'amount_in_cents' => $this->amount_in_cents,
+            'created_at'      => now(),
+        ]);
+
         match ($outcome) {
             ChargeOutcome::Authorized => $this->fill([
                 'status'         => self::ACTIVE,
@@ -295,19 +344,22 @@ class Subscription extends Model
             ]),
         };
 
+        // Redsys ha contestado sobre este pedido, asi que deja de estar en el
+        // aire y el siguiente intento estrenara uno. Salvo con SIS0051: ahi lo
+        // unico que ha dicho es que ya lo tenia, no como acabo, asi que se
+        // conserva para seguir reintentando ese mismo y que siga deduplicando.
+        //
+        // ponytail: una suscripcion puede quedarse dando vueltas en SIS0051 si
+        // Redsys autorizo el cobro y nadie lo mira. Es a proposito: no cobrar
+        // dos veces vale mas que desatascarla sola. Si molesta, consultar la
+        // operacion en Redsys y cerrarla con su desenlace de verdad.
+        if ($responseCode !== 'SIS0051') {
+            $this->pending_order = null;
+        }
+
         $this->save();
 
-        $charge = $this->charges()->create([
-            'order'           => $order,
-            'outcome'         => $outcome,
-            'response_code'   => $responseCode,
-            'amount_in_cents' => $this->amount_in_cents,
-            'created_at'      => now(),
-        ]);
-
-        // Se dispara con el estado ya aplicado: quien escuche puede mirar
-        // $subscription->status y saber si ademas se ha quedado cancelada.
-        event(new SubscriptionCharged($this, $charge));
+        return $charge;
     }
 
     public function nextChargeDate(): \DateTimeInterface

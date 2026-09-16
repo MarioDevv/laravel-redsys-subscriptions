@@ -4,14 +4,24 @@ declare(strict_types=1);
 
 namespace MarioDevv\RedsysSubscriptions;
 
+use Creagia\Redsys\Exceptions\InvalidRedsysResponseException;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ChargeDueSubscriptions extends Command
 {
     protected $signature = 'redsys:charge-subscriptions {--dry-run}';
 
     protected $description = 'Cobra las suscripciones Redsys vencidas';
+
+    /**
+     * Quien vaya a cobrar coge este lock, venga del cron o del panel. Esta aqui
+     * y es publico porque el boton 'Cobrar ahora' tiene que coger exactamente
+     * el mismo: dos claves distintas no se estorban, y eso es cobrar dos veces.
+     */
+    public const LOCK = 'redsys-subscriptions:charging';
 
     /** Nadie deberia tardar tanto, pero si el proceso muere el lock caduca solo. */
     private const LOCK_SECONDS = 600;
@@ -25,7 +35,7 @@ class ChargeDueSubscriptions extends Command
         //
         // ponytail: un lock para todo el pase. Si algun dia hace falta cobrar
         // en paralelo, uno por suscripcion.
-        $lock = Cache::lock('redsys-subscriptions:charging', self::LOCK_SECONDS);
+        $lock = Cache::lock(self::LOCK, self::LOCK_SECONDS);
 
         if (! $lock->get()) {
             $this->warn('Ya hay un pase de cobro en marcha. Este se salta.');
@@ -56,8 +66,27 @@ class ChargeDueSubscriptions extends Command
                 continue;
             }
 
-            // Cada intento necesita su propio pedido, reintentos incluidos.
-            $result = $gateway->chargeStoredCard($subscription, $order = $subscription->newOrder());
+            // Cada intento estrena pedido, salvo el que se quedo sin respuesta.
+            try {
+                $result = $gateway->chargeStoredCard($subscription, $order = $subscription->beginCharge());
+            } catch (GuzzleException | InvalidRedsysResponseException $e) {
+                // Las dos unicas que sendPostRequest() deja salir: la peticion
+                // no llego, o llego una respuesta que no venia firmada por
+                // Redsys. No se anota nada, porque no se sabe si hay cobro, y
+                // no se corta el pase: un corte de red con un titular no puede
+                // dejar sin cobrar a los demas. El pedido queda en el log, que
+                // es lo que hace falta para buscarlo en el back office.
+                Log::error('Cobro de Redsys sin respuesta fiable. Puede estar cobrado: comprueba el pedido en el back office.', [
+                    'subscription' => $subscription->id,
+                    'order'        => $order,
+                    'error'        => $e->getMessage(),
+                ]);
+
+                $this->error("#{$subscription->id} · sin respuesta fiable (pedido {$order}). Puede estar cobrado.");
+
+                continue;
+            }
+
             $subscription->recordCharge($result->outcome, $order, $result->code);
 
             $this->line("#{$subscription->id} · {$result->outcome->value} → {$subscription->status}");

@@ -7,6 +7,7 @@ namespace MarioDevv\RedsysSubscriptions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -139,6 +140,10 @@ class SubscriptionsPanel
     /**
      * Cobra ahora, de verdad. Es lo que se pide cuando un cliente llama para
      * decir que ya tiene saldo, y ahorra esperar al siguiente pase del comando.
+     *
+     * Coge el mismo lock que el comando. Sin el, soporte pulsando este boton a
+     * las 03:00 mientras corre el cron son dos autorizaciones con pedidos
+     * distintos sobre la misma tarjeta: dos cargos en el extracto del titular.
      */
     public function charge(Subscription $subscription, RedsysGateway $gateway): RedirectResponse
     {
@@ -146,8 +151,18 @@ class SubscriptionsPanel
             return back()->with('redsys_message', "{$subscription->billableName()} no tiene tarjeta guardada.");
         }
 
-        $result = $gateway->chargeStoredCard($subscription, $order = $subscription->newOrder());
-        $subscription->recordCharge($result->outcome, $order, $result->code);
+        $lock = Cache::lock(ChargeDueSubscriptions::LOCK, 120);
+
+        if (! $lock->get()) {
+            return back()->with('redsys_message', 'Hay un pase de cobro en marcha. Espera a que termine y vuelve a intentarlo.');
+        }
+
+        try {
+            $result = $gateway->chargeStoredCard($subscription, $order = $subscription->beginCharge());
+            $subscription->recordCharge($result->outcome, $order, $result->code);
+        } finally {
+            $lock->release();
+        }
 
         return back()->with('redsys_message', match ($result->outcome) {
             ChargeOutcome::Authorized    => "Cobro hecho. {$subscription->billableName()} vuelve a estar al día.",
