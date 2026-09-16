@@ -75,6 +75,23 @@ pruebas están publicadas en la documentación de Redsys.
 php artisan vendor:publish --tag=redsys-subscriptions-config
 ```
 
+### Si vienes de la 0.10
+
+**Hay cambios que rompen, y no hay migración de actualización.** Estando en
+0.x y con el esquema todavía libre, se corrigieron las migraciones en su sitio
+en vez de arrastrar una cadena de parches desde el primer día:
+
+```bash
+php artisan migrate:fresh    # o aplica los cambios a mano si ya tienes datos
+```
+
+Lo que cambió en la base de datos: una columna `pending_order` en las
+suscripciones, un índice único `(subscription_id, order)` en los cobros, y
+fuera la columna `name`.
+
+Y en la API: `newSubscription()`, `subscription()` y `subscribed()` ya no
+aceptan un nombre de suscripción. Si pasabas uno, quítalo.
+
 ### Si ya usas `creagia/laravel-redsys`
 
 Conviven. Este paquete publica `config/redsys-subscriptions.php` y cuelga sus
@@ -277,7 +294,9 @@ Tres cosas que cuestan una tarde si no se saben:
 El paquete trae un panel para operar en producción, en `/redsys-subscriptions`:
 
 - **Resumen** — ingresos al mes, activas, sin cobrar, altas sin terminar, quién
-  necesita atención y qué se cobra a continuación.
+  necesita atención y qué se cobra a continuación. En «necesitan atención»
+  entran también los **cobros que se quedaron sin respuesta**: esos siguen en
+  `active` y en verde, así que sin sacarlos aquí no los ve nadie.
 - **Suscripciones** — listado buscable por nº, pedido, últimos cuatro dígitos o
   referencia, filtrable por estado. Los cuatro dígitos solo están si tu comercio
   tiene activado el envío del número enmascarado en su TPV: Redsys no lo manda
@@ -464,6 +483,7 @@ Lo que hay probado, y contra qué:
 | `0195` | | sí |
 | El resto del catálogo de códigos | | sí |
 | Verificación de firma, SHA-256 y SHA-512 | | sí |
+| Traducción de las respuestas de Redsys a estados | | sí |
 
 El alta pasa el 3DS de verdad, la notificación llega y activa la suscripción
 **sin que el titular vuelva del navegador**, y el cobro recurrente sale
